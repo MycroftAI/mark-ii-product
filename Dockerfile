@@ -41,12 +41,12 @@ WORKDIR /opt/build
 
 RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
 
-COPY build/packages-*.txt /opt/mycroft/build/
+COPY docker/packages-*.txt ./
 
 RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
     apt-get update && \
-    cat /opt/mycroft/build/packages-*.txt | xargs apt-get install --yes --no-install-recommends && \
+    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends && \
     apt-get clean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/
@@ -56,16 +56,16 @@ RUN raspi-config nonint do_i2c 0 && \
     raspi-config nonint do_spi 0
 
 # Set up XMOS startup sequence
-COPY --chown=pi:pi build/files/home/pi/.local/ /home/pi/.local/
-COPY --chown=pi:pi build/files/home/pi/.asoundrc /home/pi/
+COPY --chown=pi:pi docker/files/home/pi/.local/ /home/pi/.local/
+COPY --chown=pi:pi docker/files/home/pi/.asoundrc /home/pi/
 RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
     cd /home/pi/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
 
 # Copy system files
-COPY build/files/usr/ /usr/
-COPY build/files/etc/ /etc/
-COPY build/files/var/ /var/
+COPY docker/files/usr/ /usr/
+COPY docker/files/etc/ /etc/
+COPY docker/files/var/ /var/
 
 # Enable/disable services at boot.
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \

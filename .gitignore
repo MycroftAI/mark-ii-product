@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+raspberry-pi-os/*.tar
+raspberry-pi-os/partition_table.txt

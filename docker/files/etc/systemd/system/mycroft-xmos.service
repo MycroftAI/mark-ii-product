@@ -1,0 +1,10 @@
+[Unit]
+Description=Mycroft Mark II XMOS Setup
+
+[Service]
+Type=oneshot
+User=pi
+ExecStart=/home/pi/.local/share/mycroft/xmos-setup/start-xmos.sh
+
+[Install]
+WantedBy=default.target
