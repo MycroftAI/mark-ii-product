@@ -20,7 +20,7 @@
 SHELL := bash
 
 DOCKER_PLATFORM ?= linux/arm64
-DOCKER_TAG ?= mycroftai/mark-ii
+DOCKER_TAG ?= mycroftai/mark-ii-product
 
 all:
 	docker buildx build . -f Dockerfile --platform $(DOCKER_PLATFORM) --tag $(DOCKER_TAG) --output 'type=tar,dest=mycroft.tar'
