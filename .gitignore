@@ -131,3 +131,4 @@ dmypy.json
 
 raspberry-pi-os/*.tar
 raspberry-pi-os/partition_table.txt
+mycroft.tar
