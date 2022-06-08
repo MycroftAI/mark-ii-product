@@ -1,0 +1,9 @@
+*
+!raspberry-pi-os/p2.tar
+!build/packages-*.txt
+!build/files/etc/
+!build/files/usr/
+!build/files/var/
+!build/files/home/pi/.asoundrc
+!build/files/home/pi/.local
+!build/files/home/pi/mimic3/
