@@ -19,13 +19,7 @@
 #
 # Requires buildkit: https://docs.docker.com/develop/develop-images/build_enhancements/
 
-FROM scratch as base
-
-ADD raspberry-pi-os/p2.tar /
-
-# -----------------------------------------------------------------------------
-
-FROM base as run
+FROM mycroftai/pi-os-lite-base:2022-04-04 as run
 ARG TARGETARCH
 ARG TARGETVARIANT
 
