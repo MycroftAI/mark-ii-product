@@ -6,3 +6,12 @@ python3-pip
 python3-venv
 sox
 xorg
+libqt5websockets5
+libqt5webview5
+libqt5multimedia5
+libkf5i18n5
+libkf5plasma5
+libkf5kiocore5
+libkworkspace5-5
+plasma-nano
+plasma-nm

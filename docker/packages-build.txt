@@ -1,0 +1,12 @@
+cmake
+extra-cmake-modules
+qtbase5-dev
+qtdeclarative5-dev
+qtmultimedia5-dev
+libqt5websockets5-dev
+libqt5webview5-dev
+libkf5i18n-dev
+gettext
+libkf5plasma-dev
+libkf5kio-dev
+plasma-workspace-dev

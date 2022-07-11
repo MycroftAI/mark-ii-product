@@ -1,0 +1,11 @@
+[Unit]
+Description=Run switch service
+After=mycroft-xmos.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/mark2-switch-server
+
+[Install]
+WantedBy=default.target

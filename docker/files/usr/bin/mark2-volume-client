@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+import argparse
+import logging
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+_LOGGER = logging.getLogger("mark2-volume-client")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--path",
+        default="/tmp/mark2-switch.socket",
+        help="Path to socket file",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+
+    args.path = Path(args.path)
+
+    # TODO: Make a proper socket systemd service
+    while not args.path.exists():
+        time.sleep(0.5)
+
+    print("Ready", file=sys.stderr)
+    event_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    event_socket.connect(str(args.path))
+
+    try:
+        while True:
+            with event_socket, event_socket.makefile(mode="r") as conn_file:
+                for line in conn_file:
+                    control, state = line.strip().split(maxsplit=1)
+                    if (control in {"volume_down", "volume_up"}) and (state == "on"):
+                        current_volume = get_volume()
+                        if control == "volume_up":
+                            set_volume(current_volume + 25)
+                        else:
+                            set_volume(current_volume - 25)
+
+                        beep()
+    except KeyboardInterrupt:
+        pass
+
+
+def get_volume():
+    lines = subprocess.check_output(
+        ["amixer", "-c", "0", "get", "Playback"], universal_newlines=True
+    ).splitlines()
+    for line in lines:
+        if line.strip().lower().startswith("front left"):
+            return int(line.split()[2])
+
+    return 255
+
+
+def set_volume(volume):
+    volume = min(255, max(0, volume))
+    subprocess.check_call(["amixer", "-q", "-c", "0", "set", "Playback", str(volume)])
+
+
+def beep():
+    subprocess.check_call(["aplay", "-q", "/etc/mycroft/beep.wav"])
+
+
+if __name__ == "__main__":
+    main()
