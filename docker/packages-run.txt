@@ -15,3 +15,4 @@ libkf5kiocore5
 libkworkspace5-5
 plasma-nano
 plasma-nm
+plasma-pa
