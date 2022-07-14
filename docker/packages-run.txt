@@ -1,9 +1,9 @@
-firefox-esr
+firefox
 git
 i2c-tools
-python3
+python3.9
 python3-pip
-python3-venv
+python3.9-venv
 sox
 xorg
 libqt5websockets5

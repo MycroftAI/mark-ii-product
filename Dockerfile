@@ -20,15 +20,19 @@
 # Requires buildkit: https://docs.docker.com/develop/develop-images/build_enhancements/
 # -----------------------------------------------------------------------------
 
+ARG BASE_IMAGE=arm64v8/ubuntu:22.04
+
 # Build Mycroft GUI
-FROM mycroftai/pi-os-lite-base:2022-04-04 as build
+FROM $BASE_IMAGE as build
 ARG TARGETARCH
 ARG TARGETVARIANT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the locale
-RUN locale-gen en_US.UTF-8
+RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
+	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+# RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
@@ -58,16 +62,22 @@ COPY docker/build/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
 COPY docker/build/gui/build-mycroft-gui-mark-2.sh ./
 RUN ./build-mycroft-gui-mark-2.sh
 
+ADD docker/build/gui/userland ./userland
+COPY docker/build/gui/build-userland.sh ./
+RUN ./build-userland.sh
+
 # -----------------------------------------------------------------------------
 
-FROM mycroftai/pi-os-lite-base:2022-04-04 as run
+FROM $BASE_IMAGE as run
 ARG TARGETARCH
 ARG TARGETVARIANT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the locale
-RUN locale-gen en_US.UTF-8
+RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
+	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+# RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
@@ -75,6 +85,14 @@ ENV LC_ALL en_US.UTF-8
 WORKDIR /opt/build
 
 RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
+
+# Only Python 3.10 is available on Ubuntu 22.04
+# Get 3.9 from the friendly dead snakes
+RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    apt install software-properties-common gpg-agent --yes --no-install-recommends
+RUN add-apt-repository ppa:deadsnakes/ppa
 
 COPY docker/packages-run.txt docker/packages-dev.txt ./
 
@@ -91,8 +109,9 @@ COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
 # Enable I2C
-RUN raspi-config nonint do_i2c 0 && \
-    raspi-config nonint do_spi 0
+# This enabled in boot/config.txt with dtparam
+# RUN raspi-config nonint do_i2c 0 && \
+#     raspi-config nonint do_spi 0
 
 # Set up XMOS startup sequence
 COPY --chown=pi:pi docker/files/home/pi/.local/ /home/pi/.local/

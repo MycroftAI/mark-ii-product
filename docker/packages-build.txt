@@ -1,4 +1,8 @@
+build-essential
 cmake
+make
+gcc
+g++
 extra-cmake-modules
 qtbase5-dev
 qtdeclarative5-dev
