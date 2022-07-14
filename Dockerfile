@@ -113,6 +113,17 @@ COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu
 # RUN raspi-config nonint do_i2c 0 && \
 #     raspi-config nonint do_spi 0
 
+# TODO - remove this - only added here to utilize cache
+# Also makes me question whether we should build spidev in the build stage
+# Shouldn't need python dev headers etc in the release
+RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    apt-get install --yes --no-install-recommends gcc-aarch64-linux-gnu python3.9-dev && \
+    apt-get clean && \
+    apt-get autoremove --yes && \
+    rm -rf /var/lib/apt/
+
 # Set up XMOS startup sequence
 COPY --chown=pi:pi docker/files/home/pi/.local/ /home/pi/.local/
 COPY --chown=pi:pi docker/files/home/pi/.asoundrc /home/pi/
