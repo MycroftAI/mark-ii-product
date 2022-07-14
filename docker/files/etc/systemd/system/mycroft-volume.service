@@ -1,0 +1,11 @@
+[Unit]
+Description=Run switch volume service
+After=mycroft-switch.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/mark2-volume-client
+
+[Install]
+WantedBy=default.target

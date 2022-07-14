@@ -18,6 +18,47 @@
 # Docker build script for Mark II
 #
 # Requires buildkit: https://docs.docker.com/develop/develop-images/build_enhancements/
+# -----------------------------------------------------------------------------
+
+# Build Mycroft GUI
+FROM mycroftai/pi-os-lite-base:2022-04-04 as build
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set the locale
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+
+WORKDIR /opt/build
+
+RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
+
+COPY docker/packages-build.txt ./
+
+RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
+
+WORKDIR /build
+
+COPY docker/build/gui/mycroft-gui/ ./mycroft-gui/
+COPY docker/build/gui/build-mycroft-gui.sh ./
+RUN ./build-mycroft-gui.sh
+
+COPY docker/build/gui/lottie-qml/ ./lottie-qml/
+COPY docker/build/gui/build-lottie-qml.sh ./
+RUN ./build-lottie-qml.sh
+
+COPY docker/build/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
+COPY docker/build/gui/build-mycroft-gui-mark-2.sh ./
+RUN ./build-mycroft-gui-mark-2.sh
+
+# -----------------------------------------------------------------------------
 
 FROM mycroftai/pi-os-lite-base:2022-04-04 as run
 ARG TARGETARCH
@@ -35,7 +76,7 @@ WORKDIR /opt/build
 
 RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
 
-COPY docker/packages-*.txt ./
+COPY docker/packages-run.txt docker/packages-dev.txt ./
 
 RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
@@ -44,6 +85,10 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     apt-get clean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/
+
+# Copy pre-built GUI files
+COPY --from=build /usr/local/ /usr/
+COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
 # Enable I2C
 RUN raspi-config nonint do_i2c 0 && \
@@ -63,8 +108,15 @@ COPY docker/files/var/ /var/
 
 # Enable/disable services at boot.
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
-    systemctl enable /etc/systemd/system/mycroft-firefox.service && \
+    systemctl enable /etc/systemd/system/mycroft-plasma.service && \
+    systemctl enable /etc/systemd/system/mycroft-switch.service && \
+    systemctl enable /etc/systemd/system/mycroft-volume.service && \
     systemctl set-default graphical
+
+RUN mkdir -p /var/log/mycroft && \
+    chown -R pi:pi /var/log/mycroft
+
+# TODO: remove lib/modules and lib/firmware
 
 # Clean up
 RUN rm -f /etc/apt/apt.conf.d/01cache
