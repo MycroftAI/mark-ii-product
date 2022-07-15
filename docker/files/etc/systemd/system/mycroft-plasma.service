@@ -4,7 +4,7 @@ After=graphical.target systemd-user-sessions.service
 
 [Service]
 User=pi
-WorkingDirectory=/home/pi
+WorkingDirectory=/home/mycroft
 PAMName=login
 Environment=XDG_SESSION_TYPE=x11
 TTYPath=/dev/tty8

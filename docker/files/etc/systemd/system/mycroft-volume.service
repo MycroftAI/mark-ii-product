@@ -4,7 +4,7 @@ After=mycroft-switch.service
 
 [Service]
 User=pi
-WorkingDirectory=/home/pi
+WorkingDirectory=/home/mycroft
 ExecStart=/usr/bin/mark2-volume-client
 
 [Install]

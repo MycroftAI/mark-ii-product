@@ -143,5 +143,5 @@ if __name__ == "__main__":
     tt = tasTest()
     tt.startSequence()
     tt.setVolume(100)
-    # os.system("aplay /home/pi/start_listening.wav")
+    # os.system("aplay /home/mycroft/start_listening.wav")
     tt.close()

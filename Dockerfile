@@ -124,11 +124,15 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/
 
+# Create mycroft user (#1050)
+COPY docker/build/mycroft/create-mycroft-user.sh ./
+RUN ./create-mycroft-user.sh
+
 # Set up XMOS startup sequence
-COPY --chown=pi:pi docker/files/home/pi/.local/ /home/pi/.local/
-COPY --chown=pi:pi docker/files/home/pi/.asoundrc /home/pi/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
 RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
-    cd /home/pi/.local/share/mycroft/xmos-setup && \
+    cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
 
 # Copy system files
@@ -144,7 +148,7 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl set-default graphical
 
 RUN mkdir -p /var/log/mycroft && \
-    chown -R pi:pi /var/log/mycroft
+    chown -R mycroft:mycroft /var/log/mycroft
 
 # TODO: remove lib/modules and lib/firmware
 
