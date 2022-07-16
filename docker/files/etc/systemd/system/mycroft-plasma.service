@@ -3,7 +3,7 @@ Description=X11 session for mycroft
 After=graphical.target systemd-user-sessions.service
 
 [Service]
-User=pi
+User=mycroft
 WorkingDirectory=/home/mycroft
 PAMName=login
 Environment=XDG_SESSION_TYPE=x11

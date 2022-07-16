@@ -3,7 +3,7 @@ Description=Run switch volume service
 After=mycroft-switch.service
 
 [Service]
-User=pi
+User=mycroft
 WorkingDirectory=/home/mycroft
 ExecStart=/usr/bin/mark2-volume-client
 
