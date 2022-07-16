@@ -12,10 +12,6 @@ if [ ! -d "${venv_dir}" ]; then
     exit 1;
 fi
 
-# Load kernel module for I2S.
-# Keep going if already loaded.
-"${this_dir}/vocalfusion-rpi-setup/resources/load_i2s_driver.sh" || true
-
 # Set clocks
 sudo setup_mclk
 sudo setup_bclk
