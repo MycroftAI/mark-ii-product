@@ -154,3 +154,6 @@ RUN mkdir -p /var/log/mycroft && \
 
 # Clean up
 RUN rm -f /etc/apt/apt.conf.d/01cache
+
+ENTRYPOINT [ "/lib/systemd/systemd" ]
+
