@@ -139,8 +139,15 @@ RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
 COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
+COPY docker/files/lib/ /lib/
 
 # Enable/disable services at boot.
+RUN systemctl disable network-manager && \
+    systemctl disable udisks && \
+    systemctl disable networking && \
+    systemctl disable apt-daily-upgrade && \
+    systemctl disable kmod-static-nodes
+
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-switch.service && \
