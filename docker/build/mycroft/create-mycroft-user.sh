@@ -13,10 +13,12 @@ c_rehash
 
 groupadd -f --system gpio
 groupadd -f --system i2c
+groupadd -f --system kmem
 
 usermod -a -G gpio mycroft
 usermod -a -G i2c mycroft
 usermod -a -G video mycroft
+usermod -a -G kmem mycroft
 
 # Add Mycroft config directory - ensuring it already exists on first boot
 mkdir -p "${home_dir}/.config/mycroft/"
