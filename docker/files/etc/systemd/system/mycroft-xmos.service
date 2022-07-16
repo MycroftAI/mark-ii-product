@@ -3,7 +3,7 @@ Description=Mycroft Mark II XMOS Setup
 
 [Service]
 Type=oneshot
-User=pi
+User=mycroft
 ExecStart=/home/mycroft/.local/share/mycroft/xmos-setup/start-xmos.sh
 
 [Install]

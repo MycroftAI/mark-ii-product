@@ -3,7 +3,7 @@ Description=Run switch service
 After=mycroft-xmos.service
 
 [Service]
-User=pi
+User=mycroft
 WorkingDirectory=/home/mycroft
 ExecStart=/usr/bin/mark2-switch-server
 
