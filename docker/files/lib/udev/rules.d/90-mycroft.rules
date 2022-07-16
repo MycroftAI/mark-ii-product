@@ -1,0 +1,3 @@
+KERNEL=="mem", GROUP="kmem", MODE="0666"
+KERNEL=="gpiomem", GROUP="kmem", MODE="0660"
+
