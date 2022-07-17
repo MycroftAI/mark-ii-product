@@ -138,9 +138,7 @@ RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
     cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
 
-RUN  \
-       apt update && apt install -y python3-rpi.gpio && \
-       apt clean && rm -rf /var/lib/apt/
+RUN pip3 install RPi.GPIO
 
 # Copy system files
 COPY docker/files/usr/ /usr/
@@ -153,6 +151,7 @@ RUN systemctl disable network-manager && \
     systemctl disable udisks && \
     systemctl disable networking && \
     systemctl disable apt-daily-upgrade && \
+    systemctl disable apt-daily && \
     systemctl disable kmod-static-nodes
 
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
