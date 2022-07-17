@@ -138,6 +138,10 @@ RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
     cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
 
+RUN  \
+       apt update && apt install -y python3-rpi.gpio && \
+       apt clean && rm -rf /var/lib/apt/
+
 # Copy system files
 COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
