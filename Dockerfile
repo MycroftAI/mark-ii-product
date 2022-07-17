@@ -120,6 +120,9 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
     apt-get update && \
     apt-get install --yes --no-install-recommends gcc-aarch64-linux-gnu python3.9-dev && \
+    apt-get install --yes --no-install-recommends gcc gcc-aarch64-linux-gnu python3.9-dev \
+		plymouth plymouth-themes \
+		udev && \
     apt-get clean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/
