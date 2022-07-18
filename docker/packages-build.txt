@@ -2,6 +2,7 @@ build-essential
 cmake
 extra-cmake-modules
 gettext
+jq
 libkf5i18n-dev
 libkf5kio-dev
 libkf5plasma-dev

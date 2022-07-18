@@ -53,6 +53,10 @@ RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
 
 WORKDIR /build
 
+# Generate container build timestamp
+COPY docker/build/mycroft/store-build-date.sh ./
+RUN ./store-build-date.sh
+
 COPY docker/build/gui/mycroft-gui/ ./mycroft-gui/
 COPY docker/build/gui/build-mycroft-gui.sh ./
 RUN ./build-mycroft-gui.sh
@@ -154,6 +158,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 &&
 #     apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
 
 # Copy pre-built GUI files
+COPY --from=build /etc/mycroft/ /etc/mycroft/
 COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
@@ -203,6 +208,9 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/ && \
     rm -f /etc/apt/apt.conf.d/01cache
+
+WORKDIR /home/mycroft
+RUN rm -rf /opt/build
 
 ENTRYPOINT [ "/lib/systemd/systemd" ]
 
