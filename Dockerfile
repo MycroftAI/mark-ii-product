@@ -22,7 +22,10 @@
 
 ARG BASE_IMAGE=arm64v8/ubuntu:22.04
 
-# Build Mycroft GUI
+# -----------------------------------------------------------------------------
+# Mycroft GUI
+# -----------------------------------------------------------------------------
+
 FROM $BASE_IMAGE as build
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -67,6 +70,42 @@ COPY docker/build/gui/build-userland.sh ./
 RUN ./build-userland.sh
 
 # -----------------------------------------------------------------------------
+# Mycroft Virtual Environment
+# -----------------------------------------------------------------------------
+
+FROM $BASE_IMAGE as venv
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /opt/build
+
+# Only Python 3.10 is available on Ubuntu 22.04
+# Get 3.9 from the friendly dead snakes
+RUN apt-get update && \
+    apt install software-properties-common gpg-agent --yes --no-install-recommends
+RUN add-apt-repository ppa:deadsnakes/ppa
+
+COPY docker/packages-venv.txt ./
+
+RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends && \
+    apt-get clean && \
+    apt-get autoremove --yes && \
+    rm -rf /var/lib/apt/
+
+# Set up XMOS startup sequence
+COPY docker/files/home/mycroft/.local/ /home/mycroft/.local/
+RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
+    cd /home/mycroft/.local/share/mycroft/xmos-setup && \
+    ./install-xmos.sh
+
+# -----------------------------------------------------------------------------
+# Mycroft Container
+# -----------------------------------------------------------------------------
 
 FROM $BASE_IMAGE as run
 ARG TARGETARCH
@@ -108,18 +147,12 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
 COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
-# Enable I2C
-# This enabled in boot/config.txt with dtparam
-# RUN raspi-config nonint do_i2c 0 && \
-#     raspi-config nonint do_spi 0
-
 # TODO - remove this - only added here to utilize cache
 # Also makes me question whether we should build spidev in the build stage
 # Shouldn't need python dev headers etc in the release
 RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
     apt-get update && \
-    apt-get install --yes --no-install-recommends gcc-aarch64-linux-gnu python3.9-dev && \
     apt-get install --yes --no-install-recommends gcc gcc-aarch64-linux-gnu python3.9-dev \
 		plymouth plymouth-themes \
 		udev && \
@@ -131,13 +164,6 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
 COPY docker/build/mycroft/create-mycroft-user.sh ./
 RUN ./create-mycroft-user.sh
 
-# Set up XMOS startup sequence
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
-RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
-    cd /home/mycroft/.local/share/mycroft/xmos-setup && \
-    ./install-xmos.sh
-
 RUN apt update; apt install -y python3-rpi.gpio; apt clean; rm -rf /var/lib/apt/
 
 # Copy system files
@@ -145,6 +171,10 @@ COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
 COPY docker/files/lib/ /lib/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
+# Pre-built virtual environments
+COPY --from=venv --chown=mycroft:mycroft /home/mycroft/.local/share/mycroft/xmos-setup/venv/ /home/mycroft/.local/share/mycroft/xmos-setup/venv/
 
 # Install the Noto Sans font family
 ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
