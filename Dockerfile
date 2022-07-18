@@ -146,6 +146,11 @@ COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
 COPY docker/files/lib/ /lib/
 
+# Install the Noto Sans font family
+ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
+COPY docker/build/mycroft/install-fonts.sh ./
+RUN ./install-fonts.sh
+
 # Enable/disable services at boot.
 RUN systemctl disable network-manager && \
     systemctl disable udisks && \
