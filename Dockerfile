@@ -97,6 +97,10 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/
 
+# Set the default Python interpreter
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
+    update-alternatives --set python /usr/bin/python3.9
+
 # Set up XMOS startup sequence
 COPY docker/files/home/mycroft/.local/ /home/mycroft/.local/
 RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
@@ -138,10 +142,16 @@ COPY docker/packages-run.txt docker/packages-dev.txt ./
 RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
     apt-get update && \
-    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends && \
-    apt-get clean && \
-    apt-get autoremove --yes && \
-    rm -rf /var/lib/apt/
+    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
+
+# Set the default Python interpreter and remove 3.10 packages
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
+    update-alternatives --set python /usr/bin/python3.9
+# WARNING: Removing the default python packages removes a lot of system dependencies
+#          that we actually need. Need to find a safe way to do this.
+# RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+#     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+#     apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
 
 # Copy pre-built GUI files
 COPY --from=build /usr/local/ /usr/
@@ -187,7 +197,12 @@ RUN mkdir -p /var/log/mycroft && \
 # TODO: remove lib/modules and lib/firmware
 
 # Clean up
-RUN rm -f /etc/apt/apt.conf.d/01cache
+RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get clean && \
+    apt-get autoremove --yes && \
+    rm -rf /var/lib/apt/ && \
+    rm -f /etc/apt/apt.conf.d/01cache
 
 ENTRYPOINT [ "/lib/systemd/systemd" ]
 
