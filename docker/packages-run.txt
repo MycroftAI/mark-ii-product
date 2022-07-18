@@ -13,9 +13,13 @@ libqt5webview5
 plasma-nano
 plasma-nm
 plasma-pa
+plymouth
+plymouth-themes
 python3-pip
+python3-rpi.gpio
 python3.9
 python3.9-venv
 sox
 sudo
+udev
 xorg

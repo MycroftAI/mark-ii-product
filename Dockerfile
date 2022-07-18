@@ -147,24 +147,9 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
 COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
-# TODO - remove this - only added here to utilize cache
-# Also makes me question whether we should build spidev in the build stage
-# Shouldn't need python dev headers etc in the release
-RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
-    apt-get install --yes --no-install-recommends gcc gcc-aarch64-linux-gnu python3.9-dev \
-		plymouth plymouth-themes \
-		udev && \
-    apt-get clean && \
-    apt-get autoremove --yes && \
-    rm -rf /var/lib/apt/
-
 # Create mycroft user (#1050)
 COPY docker/build/mycroft/create-mycroft-user.sh ./
 RUN ./create-mycroft-user.sh
-
-RUN apt update; apt install -y python3-rpi.gpio; apt clean; rm -rf /var/lib/apt/
 
 # Copy system files
 COPY docker/files/usr/ /usr/
