@@ -3,6 +3,7 @@
 !docker/packages-*.txt
 !docker/build/
 !docker/files/etc/
+!docker/files/lib/
 !docker/files/usr/
 !docker/files/var/
 !docker/files/home/mycroft/.asoundrc
