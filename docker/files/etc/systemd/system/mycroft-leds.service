@@ -1,0 +1,11 @@
+[Unit]
+Description=Run LEDs service
+After=dinkum-messagebus.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/mark2-leds-server
+
+[Install]
+WantedBy=default.target

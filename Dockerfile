@@ -106,11 +106,17 @@ COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
 
+# Install the Noto Sans font family
+ADD docker/build/mycroft/NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
+COPY docker/build/mycroft/install-fonts.sh ./
+RUN ./install-fonts.sh
+
 # Enable/disable services at boot.
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-switch.service && \
     systemctl enable /etc/systemd/system/mycroft-volume.service && \
+    systemctl enable /etc/systemd/system/mycroft-leds.service && \
     systemctl set-default graphical
 
 RUN mkdir -p /var/log/mycroft && \
