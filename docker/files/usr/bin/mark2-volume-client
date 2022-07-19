@@ -62,10 +62,11 @@ def get_volume():
 def set_volume(volume):
     volume = min(255, max(0, volume))
     subprocess.check_call(["amixer", "-q", "-c", "0", "set", "Playback", str(volume)])
+    print("Set volume to", volume, file=sys.stderr)
 
 
 def beep():
-    subprocess.check_call(["aplay", "-q", "/etc/mycroft/beep.wav"])
+    subprocess.run(["aplay", "-q", "/etc/mycroft/beep.wav"], check=False)
 
 
 if __name__ == "__main__":
