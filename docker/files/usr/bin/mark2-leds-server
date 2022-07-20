@@ -29,7 +29,7 @@ from queue import Queue
 from threading import Thread
 from typing import Any, Dict, List, Optional
 
-from websockets import connect, WebSocketException
+from websockets import connect
 
 BUS_ID = 1
 DEVICE_ADDRESS = 0x04
@@ -73,6 +73,12 @@ async def main():
         async with connect(args.uri) as websocket:
             while True:
                 try:
+                    if websocket is None:
+                        # Reconnect
+                        _LOGGER.warning("Reconnecting to %s", args.uri)
+                        websocket = await connect(args.uri)
+                        led_thread.stop_animation()
+
                     message_str = await websocket.recv()
                     message = json.loads(message_str)
                     message_type = message["type"]
@@ -92,13 +98,11 @@ async def main():
                         led_thread.start_animation("chase")
                 except KeyboardInterrupt:
                     break
-                except WebSocketException:
-                    led_thread.stop_animation()
-                    _LOGGER.warning("Reconnecting to %s", args.uri)
-                    time.sleep(5)
-                    websocket = await connect(args.uri)
                 except Exception:
-                    _LOGGER.exception("Error processing message")
+                    websocket = None
+                    led_thread.stop_animation()
+                    _LOGGER.warning("Waiting to reconnect...")
+                    time.sleep(5)
     finally:
         # Turn off LEDs
         led_thread.stop_animation()

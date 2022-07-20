@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from websockets import connect, WebSocketException
+from websockets import connect
 
 _LOGGER = logging.getLogger("mark2-volume-client")
 
@@ -51,12 +51,12 @@ async def main():
                         await set_volume(current_volume - 25)
 
                     await beep()
-            except WebSocketException:
+            except KeyboardInterrupt:
+                break
+            except Exception:
                 websocket = None
                 _LOGGER.warning("Waiting to reconnect...")
                 time.sleep(5)
-            except KeyboardInterrupt:
-                break
 
 
 async def get_volume():

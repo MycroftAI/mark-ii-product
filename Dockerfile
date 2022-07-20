@@ -33,8 +33,6 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-WORKDIR /opt/build
-
 RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
 
 COPY docker/packages-build.txt ./
@@ -46,17 +44,81 @@ RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
 
 WORKDIR /build
 
-COPY docker/build/gui/mycroft-gui/ ./mycroft-gui/
+COPY mycroft-dinkum/services/gui/mycroft-gui/ ./mycroft-gui/
 COPY docker/build/gui/build-mycroft-gui.sh ./
 RUN ./build-mycroft-gui.sh
 
-COPY docker/build/gui/lottie-qml/ ./lottie-qml/
+COPY mycroft-dinkum/services/gui/lottie-qml/ ./lottie-qml/
 COPY docker/build/gui/build-lottie-qml.sh ./
 RUN ./build-lottie-qml.sh
 
-COPY docker/build/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
+COPY mycroft-dinkum/services/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
 COPY docker/build/gui/build-mycroft-gui-mark-2.sh ./
 RUN ./build-mycroft-gui-mark-2.sh
+
+# Create dinkum (shared) virtual environment
+WORKDIR /opt/mycroft-dinkum
+
+ENV DINKUM_VENV=/home/pi/.config/mycroft/.venv
+
+# Just copy requirements and scripts so we don't have to rebuild this every time
+# a code file changes.
+COPY mycroft-dinkum/services/audio/requirements/ ./services/audio/requirements/
+COPY mycroft-dinkum/services/enclosure/requirements/ ./services/enclosure/requirements/
+COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
+COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
+COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
+COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
+
+# COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
+COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homescreen.mycroftai/
+COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
+
+# Install dinkum services/skills
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
+    "${DINKUM_VENV}/bin/pip3" install --upgrade wheel
+
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    find ./ -name 'requirements.txt' -type f -print0 | \
+    xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
+
+# Install plugins
+COPY mycroft-dinkum/plugins/ ./plugins/
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk && \
+    "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
+
+# Install shared dinkum library
+COPY mycroft-dinkum/shared/setup.py \
+     shared/
+
+COPY mycroft-dinkum/shared/requirements/requirements.txt \
+     shared/requirements/
+
+COPY mycroft-dinkum/shared/mycroft/py.typed \
+     mycroft-dinkum/shared/mycroft/__init__.py \
+     shared/mycroft/
+
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install -e ./shared/
+
+COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
+
+# Create dinkum.target and services
+RUN scripts/generate-systemd-units.py \
+        --user pi \
+        --service 0 services/messagebus \
+        --service 1 services/audio \
+        --service 1 services/gui \
+        --service 1 services/intent \
+        --service 1 services/voice \
+        --service 2 services/skills \
+        --service 3 services/enclosure \
+        --skill skills/homescreen.mycroftai \
+        --skill skills/date.mycroftai \
+        --skill skills/time.mycroftai
 
 # -----------------------------------------------------------------------------
 
@@ -112,15 +174,23 @@ COPY docker/build/mycroft/install-fonts.sh ./
 RUN ./install-fonts.sh
 
 # Enable/disable services at boot.
+COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-switch.service && \
     systemctl enable /etc/systemd/system/mycroft-volume.service && \
     systemctl enable /etc/systemd/system/mycroft-leds.service && \
+    systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
-RUN mkdir -p /var/log/mycroft && \
-    chown -R pi:pi /var/log/mycroft
+# Copy dinkum code and virtual environment
+COPY --from=build --chown=pi:pi /home/pi/.config/mycroft/ /home/pi/.config/mycroft/
+COPY mycroft-dinkum/ /opt/mycroft-dinkum/
+
+# Copy user files
+COPY --chown=pi:pi docker/files/home/pi/.bash_profile /home/pi/
+COPY --chown=pi:pi docker/files/home/pi/.local/share/ /home/pi/.local/share/
+COPY --chown=pi:pi docker/files/home/pi/.config/ /home/pi/.config/
 
 # TODO: remove lib/modules and lib/firmware
 

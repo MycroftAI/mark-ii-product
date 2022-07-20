@@ -8,10 +8,10 @@ import socket
 import threading
 import time
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import RPi.GPIO as GPIO
-from websockets import connect, WebSocketException
+from websockets import connect
 
 _LOGGER = logging.getLogger("mark2-switch-server")
 
@@ -52,12 +52,18 @@ async def main():
         )
 
     async with connect(args.uri) as websocket:
+        message: Optional[Dict[str, Any]] = None
         while True:
             try:
                 if websocket is None:
                     # Reconnect
                     _LOGGER.warning("Reconnecting to %s", args.uri)
                     websocket = await connect(args.uri)
+
+                if message is not None:
+                    message_str = json.dumps(message, ensure_ascii=False)
+                    await websocket.send(message_str)
+                    message = None
 
                 name, state = await event_queue.get()
                 _LOGGER.debug("%s: %s", name, state)
@@ -66,16 +72,12 @@ async def main():
                     "type": "mycroft.switch.state",
                     "data": {"name": name, "state": state},
                 }
-                message_str = json.dumps(message, ensure_ascii=False)
-                await websocket.send(message_str)
-            except KeyboardInterrupt:
-                break
-            except WebSocketException:
+            except Exception:
                 websocket = None
                 _LOGGER.warning("Waiting to reconnect...")
                 time.sleep(5)
-            except Exception:
-                _LOGGER.exception("Error while handling event")
+            except KeyboardInterrupt:
+                break
 
 
 def handle_event(

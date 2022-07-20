@@ -5,5 +5,6 @@
 !docker/files/etc/
 !docker/files/usr/
 !docker/files/var/
-!docker/files/home/pi/.asoundrc
-!docker/files/home/pi/.local
+!docker/files/home/pi/
+
+!mycroft-dinkum/
