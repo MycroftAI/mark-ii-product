@@ -57,6 +57,7 @@ async def main():
     )
     args = parser.parse_args()
 
+    update_leds(Palette.BLACK)
     led_thread = LedThread(
         animations={
             "pulse": PulseLedAnimation(),
@@ -70,8 +71,7 @@ async def main():
 
     try:
         async with connect(args.uri) as websocket:
-            is_running = True
-            while is_running:
+            while True:
                 try:
                     message_str = await websocket.recv()
                     message = json.loads(message_str)
@@ -82,18 +82,18 @@ async def main():
                     _LOGGER.debug(message_str)
                     message_data = message.get("data", {})
                     pattern = message_data.get("pattern", "solid")
-                    led_thread.stop_animation()
 
                     if pattern == "solid":
+                        led_thread.stop_animation()
                         update_leds(message_data.get("rgb", []))
                     elif pattern == "pulse":
                         led_thread.start_animation("pulse")
                     elif pattern == "chase":
                         led_thread.start_animation("chase")
                 except KeyboardInterrupt:
-                    is_running = False
                     break
                 except WebSocketException:
+                    led_thread.stop_animation()
                     _LOGGER.warning("Reconnecting to %s", args.uri)
                     time.sleep(5)
                     websocket = await connect(args.uri)
@@ -229,6 +229,9 @@ class LedThread(Thread):
             # Different animation is playing
             return
 
+        while not self.queue.empty():
+            self.queue.get()
+
         self.animation_running = False
         self._context["stop"] = True
 
@@ -247,6 +250,7 @@ class LedThread(Thread):
 
                 if current_animation is not None:
                     try:
+                        _LOGGER.debug("Starting animation %s", name)
                         self._context = {}
                         self.animation_name = name
                         self.animation_running = True
@@ -257,6 +261,7 @@ class LedThread(Thread):
                         ):
                             time.sleep(0)
                         current_animation.stop()
+                        _LOGGER.debug("Stopped animation %s", name)
                     except Exception:
                         update_leds(Palette.BLACK)
                         _LOGGER.exception("error running animation '%s'", name)
