@@ -12,3 +12,4 @@ plasma-workspace-dev
 qtbase5-dev
 qtdeclarative5-dev
 qtmultimedia5-dev
+swig

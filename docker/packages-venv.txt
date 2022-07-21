@@ -1,4 +1,6 @@
-gcc-aarch64-linux-gnu 
+gcc-aarch64-linux-gnu
+g++-aarch64-linux-gnu
+libfann-dev
 python3.9
 python3.9-dev
 python3-pip

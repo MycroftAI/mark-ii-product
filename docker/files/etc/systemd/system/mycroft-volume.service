@@ -6,6 +6,8 @@ After=mycroft-switch.service
 User=mycroft
 WorkingDirectory=/home/mycroft
 ExecStart=/usr/bin/mark2-volume-client
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=default.target

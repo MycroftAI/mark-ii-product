@@ -3,10 +3,11 @@ Description=Run switch service
 After=mycroft-xmos.service
 
 [Service]
-User=root
-ExecStartPre=/usr/bin/rm -f /tmp/mark2-switch.socket
+User=mycroft
+WorkingDirectory=/home/mycroft
 ExecStart=/usr/bin/mark2-switch-server
-ExecStartPost=/bin/bash -c "while ! [ -e /tmp/mark2-switch.socket ]; do sleep 1; done; chmod a+rwx /tmp/mark2-switch.socket"
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=default.target

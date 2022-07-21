@@ -6,5 +6,5 @@
 !docker/files/lib/
 !docker/files/usr/
 !docker/files/var/
-!docker/files/home/mycroft/.asoundrc
-!docker/files/home/mycroft/.local
+!docker/files/home/mycroft/
+!/mycroft-dinkum

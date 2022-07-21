@@ -1,3 +1,2 @@
 smbus2
 spidev
-RPi.GPIO

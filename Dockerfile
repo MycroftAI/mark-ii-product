@@ -44,12 +44,31 @@ WORKDIR /opt/build
 
 RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
 
-COPY docker/packages-build.txt ./
+COPY docker/packages-build.txt docker/packages-venv.txt ./
+
+# Only Python 3.10 is available on Ubuntu 22.04
+# Get 3.9 from the friendly dead snakes
+RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    apt install software-properties-common gpg-agent --yes --no-install-recommends
+RUN add-apt-repository ppa:deadsnakes/ppa
 
 RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
     apt-get update && \
-    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
+    cat packages-build.txt | xargs apt-get install --yes --no-install-recommends
+
+RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
+    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
+    apt-get update && \
+    cat packages-venv.txt | xargs apt-get install --yes --no-install-recommends
+
+# Set the default Python interpreter
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
+    update-alternatives --set python /usr/bin/python3.9
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
+    update-alternatives --set python3 /usr/bin/python3.9
 
 WORKDIR /build
 
@@ -73,43 +92,75 @@ ADD docker/build/gui/userland ./userland
 COPY docker/build/gui/build-userland.sh ./
 RUN ./build-userland.sh
 
-# -----------------------------------------------------------------------------
-# Mycroft Virtual Environment
-# -----------------------------------------------------------------------------
-
-FROM $BASE_IMAGE as venv
-ARG TARGETARCH
-ARG TARGETVARIANT
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-WORKDIR /opt/build
-
-# Only Python 3.10 is available on Ubuntu 22.04
-# Get 3.9 from the friendly dead snakes
-RUN apt-get update && \
-    apt install software-properties-common gpg-agent --yes --no-install-recommends
-RUN add-apt-repository ppa:deadsnakes/ppa
-
-COPY docker/packages-venv.txt ./
-
-RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
-    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends && \
-    apt-get clean && \
-    apt-get autoremove --yes && \
-    rm -rf /var/lib/apt/
-
-# Set the default Python interpreter
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
-    update-alternatives --set python /usr/bin/python3.9
-
 # Set up XMOS startup sequence
 COPY docker/files/home/mycroft/.local/ /home/mycroft/.local/
 RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
     cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
+
+# Create dinkum (shared) virtual environment
+WORKDIR /opt/mycroft-dinkum
+
+ENV DINKUM_VENV=/home/mycroft/.config/mycroft/.venv
+
+# Just copy requirements and scripts so we don't have to rebuild this every time
+# a code file changes.
+COPY mycroft-dinkum/services/audio/requirements/ ./services/audio/requirements/
+COPY mycroft-dinkum/services/enclosure/requirements/ ./services/enclosure/requirements/
+COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
+COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
+COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
+COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
+
+# COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
+COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homescreen.mycroftai/
+COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
+
+# Install dinkum services/skills
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
+    "${DINKUM_VENV}/bin/pip3" install --upgrade wheel
+
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    find ./ -name 'requirements.txt' -type f -print0 | \
+    xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
+
+# Install plugins
+COPY mycroft-dinkum/plugins/ ./plugins/
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk && \
+    "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
+
+# Install shared dinkum library
+COPY mycroft-dinkum/shared/setup.py \
+     shared/
+
+COPY mycroft-dinkum/shared/requirements/requirements.txt \
+     shared/requirements/
+
+COPY mycroft-dinkum/shared/mycroft/py.typed \
+     mycroft-dinkum/shared/mycroft/__init__.py \
+     shared/mycroft/
+
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install -e ./shared/
+
+COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
+
+# Create dinkum.target and services
+RUN scripts/generate-systemd-units.py \
+        --user mycroft \
+        --service 0 services/messagebus \
+        --service 1 services/audio \
+        --service 1 services/gui \
+        --service 1 services/intent \
+        --service 1 services/voice \
+        --service 2 services/skills \
+        --service 3 services/enclosure \
+        --skill skills/homescreen.mycroftai \
+        --skill skills/date.mycroftai \
+        --skill skills/time.mycroftai
 
 # -----------------------------------------------------------------------------
 # Mycroft Container
@@ -151,13 +202,16 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
 # Set the default Python interpreter and remove 3.10 packages
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
     update-alternatives --set python /usr/bin/python3.9
-# WARNING: Removing the default python packages removes a lot of system dependencies
-#          that we actually need. Need to find a safe way to do this.
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
+    update-alternatives --set python3 /usr/bin/python3.9
+# TODO: Removing the default python packages removes a lot of system dependencies
+#       that we actually need. Need to find a safe way to do this.
 # RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
 #     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
 #     apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
 
 # Copy pre-built GUI files
+# TODO check why we are copy etc here.
 COPY --from=build /etc/mycroft/ /etc/mycroft/
 COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
@@ -173,8 +227,6 @@ COPY docker/files/var/ /var/
 COPY docker/files/lib/ /lib/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
-# Pre-built virtual environments
-COPY --from=venv --chown=mycroft:mycroft /home/mycroft/.local/share/mycroft/xmos-setup/venv/ /home/mycroft/.local/share/mycroft/xmos-setup/venv/
 
 # Install the Noto Sans font family
 ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
@@ -190,14 +242,38 @@ RUN systemctl disable network-manager && \
     systemctl disable snapd.socket && \
     systemctl disable kmod-static-nodes
 
+COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-switch.service && \
     systemctl enable /etc/systemd/system/mycroft-volume.service && \
+    systemctl enable /etc/systemd/system/mycroft-leds.service && \
+    systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
 RUN mkdir -p /var/log/mycroft && \
     chown -R mycroft:mycroft /var/log/mycroft
+
+# Copy dinkum code and virtual environment
+COPY --from=build --chown=mycroft:mycroft /home/mycroft/.config/mycroft/.venv /home/mycroft/.config/mycroft/.venv
+COPY --from=build --chown=mycroft:mycroft /home/mycroft/.local/share/mycroft/xmos-setup/venv /home/mycroft/.local/share/mycroft/xmos-setup/venv
+COPY mycroft-dinkum/ /opt/mycroft-dinkum/
+
+# Copy user files
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.bash_profile /home/mycroft/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/share/ /home/mycroft/.local/share/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/.config/ /home/mycroft/.config/
+
+# Install pantacor tools
+COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvsocket /usr/local/bin/pvsocket
+COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvlog /usr/local/bin/pvlog
+COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvmeta /usr/local/bin/pvmeta
+COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvreboot /usr/local/bin/pvreboot
+COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvpoweroff /usr/local/bin/pvpoweroff
+
+COPY docker/build/pantacor/install-pantacor-tools.sh ./
+# TODO enable poweroff and reboot units
+RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 
 # TODO: remove lib/modules and lib/firmware
 
