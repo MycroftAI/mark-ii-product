@@ -5,6 +5,7 @@
 !docker/files/etc/
 !docker/files/usr/
 !docker/files/var/
+!docker/files/opt/
 !docker/files/home/pi/
 
 !mycroft-dinkum/

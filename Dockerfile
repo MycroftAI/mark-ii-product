@@ -71,14 +71,28 @@ COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requ
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
 
 # COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
+# COPY mycroft-dinkum/skills/mycroft-stop.mycroftai/requirements.txt ./skills/mycroft-stop.mycroftai/
+# COPY mycroft-dinkum/skills/fallback-unknown.mycroftai/requirements.txt ./skills/fallback-unknown.mycroftai/
+# COPY mycroft-dinkum/skills/fallback-query.mycroftai/requirements.txt ./skills/fallback-query.mycroftai/
 COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homescreen.mycroftai/
 COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
+COPY mycroft-dinkum/skills/mycroft-ip.mycroftai/requirements.txt ./skills/mycroft-ip.mycroftai/
+COPY mycroft-dinkum/skills/fallback-query.mycroftai/requirements.txt ./skills/mycroft-fallback-query.mycroftai/
+COPY mycroft-dinkum/skills/fallback-wolfram-alpha.mycroftai/requirements.txt ./skills/mycroft-fallback-wolfram-alpha.mycroftai/
+COPY mycroft-dinkum/skills/mycroft-fallback-duck-duck-go.mycroftai/requirements.txt ./skills/mycroft-fallback-duck-duck-go.mycroftai/
+COPY mycroft-dinkum/skills/mycroft-wiki.mycroftai/requirements.txt ./skills/mycroft-wiki.mycroftai/
+COPY mycroft-dinkum/skills/mycroft-weather.mycroftai/requirements.txt ./skills/mycroft-weather.mycroftai/
 
-# Install dinkum services/skills
+# Create shared virtual environment with upgraded pip/setuptools
+#
+# NOTE: It's crucial that system site packages are available so the HAL service
+# can access RPi.GPIO.
+#
 RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
-    python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
+    python3 -m venv --upgrade-deps --system-site-packages "${DINKUM_VENV}" && \
     "${DINKUM_VENV}/bin/pip3" install --upgrade wheel
 
+# Install dinkum service/skill requirements
 RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
     find ./ -name 'requirements.txt' -type f -print0 | \
     xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
@@ -104,12 +118,12 @@ COPY mycroft-dinkum/shared/mycroft/py.typed \
 RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install -e ./shared/
 
-COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
-
 # Create dinkum.target and services
+COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
 RUN scripts/generate-systemd-units.py \
         --user pi \
         --service 0 services/messagebus \
+        --service 1 services/hal \
         --service 1 services/audio \
         --service 1 services/gui \
         --service 1 services/intent \
@@ -118,7 +132,15 @@ RUN scripts/generate-systemd-units.py \
         --service 3 services/enclosure \
         --skill skills/homescreen.mycroftai \
         --skill skills/date.mycroftai \
-        --skill skills/time.mycroftai
+        --skill skills/time.mycroftai \
+        --skill skills/mycroft-ip.mycroftai \
+        --skill skills/mycroft-stop.mycroftai \
+        --skill skills/mycroft-weather.mycroftai \
+        --skill skills/fallback-unknown.mycroftai \
+        --skill skills/fallback-query.mycroftai \
+        --skill skills/mycroft-fallback-duck-duck-go.mycroftai \
+        --skill skills/mycroft-wiki.mycroftai \
+        --skill skills/fallback-wolfram-alpha.mycroftai
 
 # -----------------------------------------------------------------------------
 
@@ -167,6 +189,7 @@ RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
 COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
+COPY docker/files/opt/ /opt/
 
 # Install the Noto Sans font family
 ADD docker/build/mycroft/NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
@@ -177,9 +200,6 @@ RUN ./install-fonts.sh
 COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
-    systemctl enable /etc/systemd/system/mycroft-switch.service && \
-    systemctl enable /etc/systemd/system/mycroft-volume.service && \
-    systemctl enable /etc/systemd/system/mycroft-leds.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
