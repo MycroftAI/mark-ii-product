@@ -42,26 +42,18 @@ ENV LC_ALL en_US.UTF-8
 
 WORKDIR /opt/build
 
-RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
-
 COPY docker/packages-build.txt docker/packages-venv.txt ./
 
 # Only Python 3.10 is available on Ubuntu 22.04
 # Get 3.9 from the friendly dead snakes
-RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
+RUN apt-get update && \
     apt install software-properties-common gpg-agent --yes --no-install-recommends
 RUN add-apt-repository ppa:deadsnakes/ppa
 
-RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
+RUN apt-get update && \
     cat packages-build.txt | xargs apt-get install --yes --no-install-recommends
 
-RUN --mount=type=cache,id=apt-build,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
+RUN apt-get update && \
     cat packages-venv.txt | xargs apt-get install --yes --no-install-recommends
 
 # Set the default Python interpreter
@@ -94,8 +86,7 @@ RUN ./build-userland.sh
 
 # Set up XMOS startup sequence
 COPY docker/files/home/mycroft/.local/ /home/mycroft/.local/
-RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
-    cd /home/mycroft/.local/share/mycroft/xmos-setup && \
+RUN cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
 
 # Create dinkum (shared) virtual environment
@@ -117,18 +108,15 @@ COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homesc
 COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
 
 # Install dinkum services/skills
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
-    python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
+RUN python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
     "${DINKUM_VENV}/bin/pip3" install --upgrade wheel
 
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
-    find ./ -name 'requirements.txt' -type f -print0 | \
+RUN find ./ -name 'requirements.txt' -type f -print0 | \
     xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
 
 # Install plugins
 COPY mycroft-dinkum/plugins/ ./plugins/
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
-    "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
+RUN "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk && \
     "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
 
@@ -143,8 +131,7 @@ COPY mycroft-dinkum/shared/mycroft/py.typed \
      mycroft-dinkum/shared/mycroft/__init__.py \
      shared/mycroft/
 
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
-    "${DINKUM_VENV}/bin/pip3" install -e ./shared/
+RUN "${DINKUM_VENV}/bin/pip3" install -e ./shared/
 
 COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
 
@@ -182,21 +169,15 @@ ENV LC_ALL en_US.UTF-8
 
 WORKDIR /opt/build
 
-RUN echo "Dir::Cache var/cache/apt/${TARGETARCH}${TARGETVARIANT};" > /etc/apt/apt.conf.d/01cache
-
 # Only Python 3.10 is available on Ubuntu 22.04
 # Get 3.9 from the friendly dead snakes
-RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
+RUN apt-get update && \
     apt install software-properties-common gpg-agent --yes --no-install-recommends
 RUN add-apt-repository ppa:deadsnakes/ppa
 
 COPY docker/packages-run.txt docker/packages-dev.txt ./
 
-RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get update && \
+RUN apt-get update && \
     cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
 
 # Set the default Python interpreter and remove 3.10 packages
@@ -206,9 +187,7 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 
     update-alternatives --set python3 /usr/bin/python3.9
 # TODO: Removing the default python packages removes a lot of system dependencies
 #       that we actually need. Need to find a safe way to do this.
-# RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-#     mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-#     apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
+# RUN apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
 
 # Copy pre-built GUI files
 # TODO check why we are copy etc here.
@@ -278,12 +257,9 @@ RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 # TODO: remove lib/modules and lib/firmware
 
 # Clean up
-RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
-    mkdir -p /var/cache/apt/${TARGETARCH}${TARGETVARIANT}/archives/partial && \
-    apt-get clean && \
+RUN apt-get clean && \
     apt-get autoremove --yes && \
-    rm -rf /var/lib/apt/ && \
-    rm -f /etc/apt/apt.conf.d/01cache
+    rm -rf /var/lib/apt/
 
 WORKDIR /home/mycroft
 RUN rm -rf /opt/build
