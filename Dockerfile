@@ -254,6 +254,9 @@ COPY docker/build/pantacor/install-pantacor-tools.sh ./
 # TODO enable poweroff and reboot units
 RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 
+# Install rpi.gpio last to avoid issues with switch server
+RUN apt-get update && apt-get install -y python3-rpi.gpio
+
 # TODO: remove lib/modules and lib/firmware
 
 # Clean up

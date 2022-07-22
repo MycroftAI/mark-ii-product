@@ -1,6 +1,8 @@
 flac
 git
 i2c-tools
+kbd
+kmod
 libfann-dev
 libkf5i18n5
 libkf5kiocore5
@@ -13,9 +15,13 @@ libsdl2-mixer-2.0-0
 plasma-nano
 plasma-nm
 plasma-pa
+plymouth
+plymouth-themes
 python3.9
 python3-pip
 python3.9-venv
 python3-websockets
 sox
+sudo
+udev
 xorg
