@@ -257,6 +257,8 @@ COPY docker/build/pantacor/install-pantacor-tools.sh ./
 RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 
 # Install rpi.gpio last to avoid issues with switch server
+# TODO - This should be available to the XMOS service but it is failing to find the module.
+#        Have installed it in the XMOS venv as well.
 RUN apt-get update && apt-get install -y python3-rpi.gpio
 
 # TODO: remove lib/modules and lib/firmware
