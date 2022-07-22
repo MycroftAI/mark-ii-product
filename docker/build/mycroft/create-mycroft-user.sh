@@ -7,6 +7,7 @@ set -euo pipefail
 
 home_dir=/home/mycroft
 mycroft_dir=/opt/mycroft
+mycroft_config_dir="${home_dir}/.config/mycroft"
 
 adduser --disabled-password --gecos "" --uid 1050 mycroft
 c_rehash
@@ -25,13 +26,13 @@ usermod -a -G render mycroft
 usermod -a -G tty mycroft
 
 # Add Mycroft config directory - ensuring it already exists on first boot
-mkdir -p "${home_dir}/.config/mycroft/"
-chmod 700 "${home_dir}/.config/mycroft/"
+mkdir -p $mycroft_config_dir
+chmod 700 $mycroft_config_dir
 
 # Update .bashrc
 {
     echo "export PATH=\${PATH}:${mycroft_dir}/bin"
-    echo "source ${mycroft_dir}/.venv/bin/activate"
+    echo "source ${mycroft_config_dir}/.venv/bin/activate"
     echo "export PYTHONPATH=${mycroft_dir}:\${PYTHONPATH}"
     echo "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:/opt/vc/lib/"
 } >> "${home_dir}/.bashrc"

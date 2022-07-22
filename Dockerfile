@@ -242,6 +242,8 @@ COPY mycroft-dinkum/ /opt/mycroft-dinkum/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.bash_profile /home/mycroft/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/share/ /home/mycroft/.local/share/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.config/ /home/mycroft/.config/
+# The .config directory is not getting the right owner for some reason - force it.
+RUN chown mycroft:mycroft /home/mycroft/.config
 
 # Install pantacor tools
 COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvsocket /usr/local/bin/pvsocket
