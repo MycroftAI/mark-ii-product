@@ -82,6 +82,7 @@ COPY mycroft-dinkum/skills/fallback-wolfram-alpha.mycroftai/requirements.txt ./s
 COPY mycroft-dinkum/skills/mycroft-fallback-duck-duck-go.mycroftai/requirements.txt ./skills/mycroft-fallback-duck-duck-go.mycroftai/
 COPY mycroft-dinkum/skills/mycroft-wiki.mycroftai/requirements.txt ./skills/mycroft-wiki.mycroftai/
 COPY mycroft-dinkum/skills/mycroft-weather.mycroftai/requirements.txt ./skills/mycroft-weather.mycroftai/
+COPY mycroft-dinkum/skills/mycroft-volume.mycroftai/requirements.txt ./skills/mycroft-volume.mycroftai/
 
 # Create shared virtual environment with upgraded pip/setuptools
 #
@@ -140,7 +141,8 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/fallback-query.mycroftai \
         --skill skills/mycroft-fallback-duck-duck-go.mycroftai \
         --skill skills/mycroft-wiki.mycroftai \
-        --skill skills/fallback-wolfram-alpha.mycroftai
+        --skill skills/fallback-wolfram-alpha.mycroftai \
+        --skill skills/mycroft-volume.mycroftai
 
 # -----------------------------------------------------------------------------
 
