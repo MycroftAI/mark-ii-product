@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+# Copyright 2022 Mycroft AI Inc.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# -----------------------------------------------------------------------------
+#
+import asyncio
+import argparse
+import itertools
+import json
+import logging
+import subprocess
+import sys
+import time
+from pathlib import Path
+from queue import Queue
+from threading import Thread
+from typing import Any, Dict, List, Optional
+
+from websockets import connect
+
+BUS_ID = 1
+DEVICE_ADDRESS = 0x04
+
+MAX_COLOR = 255
+MIN_COLOR = 0
+NUM_COLORS = 3
+
+NUM_LEDS = 12
+FIRST_LED = 0
+MAX_LEDS_PER_WRITE = 10
+
+_LOGGER = logging.getLogger("mark2-leds-server")
+
+
+async def main():
+    """Main entry point"""
+    logging.basicConfig(level=logging.INFO)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--uri",
+        default="ws://127.0.0.1:8181/core",
+        help="URI of websocket messagebus",
+    )
+    args = parser.parse_args()
+
+    update_leds(Palette.BLACK)
+    led_thread = LedThread(
+        animations={
+            "pulse": PulseLedAnimation(),
+            "chase": ChaseLedAnimation(
+                background_color=Palette.BLUE,
+                foreground_color=Palette.BLACK,
+            ),
+        },
+    )
+    led_thread.start()
+
+    try:
+        async with connect(args.uri) as websocket:
+            while True:
+                try:
+                    if websocket is None:
+                        # Reconnect
+                        _LOGGER.warning("Reconnecting to %s", args.uri)
+                        websocket = await connect(args.uri)
+                        led_thread.stop_animation()
+
+                    message_str = await websocket.recv()
+                    message = json.loads(message_str)
+                    message_type = message["type"]
+                    if message_type != "mycroft.hal.set-leds":
+                        continue
+
+                    _LOGGER.debug(message_str)
+                    message_data = message.get("data", {})
+                    pattern = message_data.get("pattern", "solid")
+
+                    if pattern == "solid":
+                        led_thread.stop_animation()
+                        update_leds(message_data.get("rgb", []))
+                    elif pattern == "pulse":
+                        led_thread.start_animation("pulse")
+                    elif pattern == "chase":
+                        led_thread.start_animation("chase")
+                except KeyboardInterrupt:
+                    break
+                except Exception:
+                    websocket = None
+                    led_thread.stop_animation()
+                    _LOGGER.warning("Waiting to reconnect...")
+                    time.sleep(5)
+    finally:
+        # Turn off LEDs
+        led_thread.stop_animation()
+
+
+# -----------------------------------------------------------------------------
+
+
+def update_led(led_index: int, rgb: List[int], brightness: float = 1.0):
+    # Adjust brightness
+    brightness = max(0.0, min(1.0, brightness))
+    if brightness < 1:
+        rgb = [int(v * brightness) for v in rgb]
+
+    set_command = [
+        "i2cset",
+        "-y",  # disable interactive mode
+        "-a",  # allow access to LED device range
+        str(BUS_ID),
+        f"0x{DEVICE_ADDRESS:02x}",
+        f"0x{FIRST_LED + led_index:02x}",
+        *(str(value) for value in rgb),
+        "i",  # block data
+    ]
+
+    subprocess.check_call(set_command)
+
+
+def update_leds(values: List[int], brightness: float = 1.0):
+    # r1 g1 b1 r2 g2 b2 ...
+    values = [min(MAX_COLOR, max(MIN_COLOR, int(arg))) for arg in values]
+
+    # Default to black if no arguments
+    values = values or [MIN_COLOR]
+
+    # Ensure a full triplet
+    while (len(values) % NUM_COLORS) != 0:
+        values.append(MIN_COLOR)
+
+    # Repeat color for all leds, if necessary
+    rgb = list(itertools.islice(itertools.cycle(values), 0, NUM_LEDS * NUM_COLORS))
+
+    # Adjust brightness
+    brightness = max(0.0, min(1.0, brightness))
+    if brightness < 1:
+        rgb = [int(v * brightness) for v in rgb]
+
+    # Write in blocks to avoid overloading i2cset
+    last_value = MAX_LEDS_PER_WRITE * NUM_COLORS
+    write_offset = 0
+    while rgb:
+        set_command = [
+            "i2cset",
+            "-y",  # disable interactive mode
+            "-a",  # allow access to LED device range
+            str(BUS_ID),
+            f"0x{DEVICE_ADDRESS:02x}",
+            f"0x{FIRST_LED + write_offset:02x}",
+            *(str(value) for value in rgb[:last_value]),
+            "i",  # block data
+        ]
+
+        subprocess.check_call(set_command)
+
+        # Next block
+        rgb = rgb[last_value:]
+        write_offset += MAX_LEDS_PER_WRITE
+
+
+# -----------------------------------------------------------------------------
+
+
+class Palette:
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    YELLOW = (255, 255, 0)
+    RED = (255, 0, 0)
+    GREEN = (0, 255, 0)
+    BLUE = (0, 0, 255)
+    MAGENTA = (255, 0, 255)
+    BURNT_ORANGE = (204, 85, 0)
+    MYCROFT_RED = (216, 17, 89)
+    MYCROFT_GREEN = (64, 219, 176)
+    MYCROFT_BLUE = (34, 167, 240)
+
+
+class LedAnimation:
+    """Base class for LED animations"""
+
+    def start(self):
+        """Begin LED animation"""
+        pass
+
+    def step(self, context: Dict[str, Any]) -> bool:
+        """Single step of the animation.
+
+        Put time.sleep inside here.
+
+        Arguments:
+            context: dict with user-defined values
+
+        Returns:
+            True if animation should continue
+        """
+        return False
+
+    def stop(self):
+        """End LED animation"""
+        pass
+
+
+class LedThread(Thread):
+    def __init__(self, animations: Dict[str, LedAnimation]):
+        self.animations = animations
+        self.queue = Queue()
+        self.animation_running = False
+        self.animation_name: typing.Optional[str] = None
+        self._context: typing.Dict[str, typing.Any] = dict()
+
+        super().__init__()
+
+    def start_animation(self, name: str):
+        self.stop_animation()
+        self.queue.put(name)
+
+    def stop_animation(self, name: Optional[str] = None):
+        if name and (self.animation_name != name):
+            # Different animation is playing
+            return
+
+        while not self.queue.empty():
+            self.queue.get()
+
+        self.animation_running = False
+        self._context["stop"] = True
+
+    @property
+    def context(self):
+        return self._context
+
+    def run(self):
+        try:
+            while True:
+                self.animation_name = None
+                self.animation_running = False
+
+                name = self.queue.get()
+                current_animation = self.animations.get(name)
+
+                if current_animation is not None:
+                    try:
+                        _LOGGER.debug("Starting animation %s", name)
+                        self._context = {}
+                        self.animation_name = name
+                        self.animation_running = True
+                        current_animation.is_running = True
+                        current_animation.start()
+                        while self.animation_running and current_animation.step(
+                            context=self._context
+                        ):
+                            time.sleep(0)
+                        current_animation.stop()
+                        _LOGGER.debug("Stopped animation %s", name)
+                    except Exception:
+                        update_leds(Palette.BLACK)
+                        _LOGGER.exception("error running animation '%s'", name)
+
+                else:
+                    _LOGGER.error("No animation named %s", name)
+        except Exception:
+            _LOGGER.exception("error running led animation")
+
+
+class PulseLedAnimation(LedAnimation):
+    def __init__(self, color=Palette.MYCROFT_GREEN):
+        self.color_tup = color
+        self.delay = 0.05
+        self.brightness = 100
+        self.step_size = 5
+        self.tmp_leds = []
+
+    def start(self):
+        update_leds(self.color_tup, brightness=(self.brightness / 100))
+
+    def step(self, context):
+        if (self.brightness + self.step_size) > 100:
+            self.brightness = self.brightness - self.step_size
+            self.step_size = self.step_size * -1
+
+        elif (self.brightness + self.step_size) < 0:
+            self.brightness = self.brightness - self.step_size
+            self.step_size = self.step_size * -1
+
+        else:
+            self.brightness += self.step_size
+
+        update_leds(self.color_tup, brightness=(self.brightness / 100))
+
+        if self.is_running:
+            time.sleep(self.delay)
+
+        return True
+
+    def stop(self):
+        update_leds(Palette.BLACK)
+
+
+class ChaseLedAnimation(LedAnimation):
+    def __init__(self, background_color=Palette.BLUE, foreground_color=Palette.BLACK):
+        super().__init__()
+
+        self.bkgnd_col = background_color
+        self.fgnd_col = foreground_color
+        self.color_tup = foreground_color
+        self.delay = 0.1
+
+    def start(self):
+        update_leds(self.fgnd_col)
+
+    def step(self, context):
+        fgnd_col = context.get("chase.foreground_color", self.fgnd_col)
+        bkgnd_col = context.get("chase.background_color", self.bkgnd_col)
+
+        for x in range(0, NUM_LEDS):
+            if context.get("stop", False):
+                break
+
+            update_led(x, fgnd_col)
+            time.sleep(self.delay)
+            update_led(x, bkgnd_col)
+
+        return True
+
+    def stop(self):
+        update_leds(Palette.BLACK)
+
+
+# -----------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    asyncio.run(main())

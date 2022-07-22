@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
+import asyncio
 import argparse
 import functools
+import json
 import logging
 import socket
 import threading
 import time
 from pathlib import Path
-from queue import Queue
-from typing import List
+from typing import Any, Dict, List, Optional
 
 import RPi.GPIO as GPIO
+from websockets import connect
 
 _LOGGER = logging.getLogger("mark2-switch-server")
 
@@ -24,73 +26,68 @@ SWITCH_ON = "on"
 SWITCH_OFF = "off"
 
 
-def main():
+async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--path",
-        default="/tmp/mark2-switch.socket",
-        help="Path to socket file",
+        "--uri",
+        default="ws://127.0.0.1:8181/core",
+        help="URI of websocket messagebus",
     )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
-    args.path = Path(args.path)
-    args.path.unlink(missing_ok=True)
-
-    event_queues = []
-
-    event_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    event_socket.bind(str(args.path))
-    event_socket.listen()
-
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
 
+    loop = asyncio.get_running_loop()
+    event_queue = asyncio.Queue()
     for name, pin in PINS.items():
         GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(
             pin,
             GPIO.BOTH,
-            callback=functools.partial(handle_event, name, pin, event_queues),
+            callback=functools.partial(handle_event, name, pin, event_queue, loop),
             bouncetime=DEBOUNCE,
         )
 
-    try:
+    async with connect(args.uri) as websocket:
+        message: Optional[Dict[str, Any]] = None
         while True:
-            connection, client_address = event_socket.accept()
-            threading.Thread(
-                target=client_run, args=(connection, event_queues), daemon=True
-            ).start()
-    except KeyboardInterrupt:
-        pass
+            try:
+                if websocket is None:
+                    # Reconnect
+                    _LOGGER.warning("Reconnecting to %s", args.uri)
+                    websocket = await connect(args.uri)
+
+                if message is not None:
+                    message_str = json.dumps(message, ensure_ascii=False)
+                    await websocket.send(message_str)
+                    message = None
+
+                name, state = await event_queue.get()
+                _LOGGER.debug("%s: %s", name, state)
+
+                message = {
+                    "type": "mycroft.switch.state",
+                    "data": {"name": name, "state": state},
+                }
+            except Exception:
+                websocket = None
+                _LOGGER.warning("Waiting to reconnect...")
+                time.sleep(5)
+            except KeyboardInterrupt:
+                break
 
 
-def client_run(connection, event_queues: List[Queue]):
-
-    with connection, connection.makefile(mode="rw") as conn_file:
-        event_queue = Queue()
-        event_queues.append(event_queue)
-
-        try:
-            while True:
-                name, state = event_queue.get()
-                print(name, state, file=conn_file, flush=True)
-        finally:
-            event_queues.remove(event_queue)
-            connection.close()
-
-
-def handle_event(name, pin, event_queues: List[Queue], _channel):
+def handle_event(
+    name, pin, event_queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, _channel
+):
     time.sleep(WAIT_SEC)
     value = GPIO.input(pin)
-
-    for event_queue in event_queues:
-        if value == ACTIVE:
-            event_queue.put_nowait((name, SWITCH_ON))
-        else:
-            event_queue.put_nowait((name, SWITCH_OFF))
+    state = SWITCH_ON if value == ACTIVE else SWITCH_OFF
+    loop.call_soon_threadsafe(event_queue.put_nowait, (name, state))
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
