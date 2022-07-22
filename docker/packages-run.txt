@@ -3,6 +3,7 @@ git
 i2c-tools
 kbd
 kmod
+libatomic1
 libfann-dev
 libkf5i18n5
 libkf5kiocore5
