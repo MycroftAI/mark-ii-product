@@ -99,6 +99,7 @@ ENV DINKUM_VENV=/home/mycroft/.config/mycroft/.venv
 COPY mycroft-dinkum/services/audio/requirements/ ./services/audio/requirements/
 COPY mycroft-dinkum/services/enclosure/requirements/ ./services/enclosure/requirements/
 COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
+COPY mycroft-dinkum/services/hal/requirements/ ./services/hal/requirements/
 COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
 COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
@@ -145,9 +146,11 @@ RUN scripts/generate-systemd-units.py \
         --service 1 services/voice \
         --service 2 services/skills \
         --service 3 services/enclosure \
+        --service 3 services/hal \
         --skill skills/homescreen.mycroftai \
         --skill skills/date.mycroftai \
-        --skill skills/time.mycroftai
+        --skill skills/time.mycroftai \
+        --skill skills/mycroft-volume.mycroftai
 
 # -----------------------------------------------------------------------------
 # Mycroft Container
