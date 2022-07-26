@@ -102,6 +102,7 @@ COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
 COPY mycroft-dinkum/services/hal/requirements/ ./services/hal/requirements/
 COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
 COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
+COPY mycroft-dinkum/services/skills/requirements/ ./services/skills/requirements/
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
 
 # COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
