@@ -141,17 +141,25 @@ COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
 RUN scripts/generate-systemd-units.py \
         --user mycroft \
         --service 0 services/messagebus \
+        --service 1 services/hal \
         --service 1 services/audio \
         --service 1 services/gui \
         --service 1 services/intent \
         --service 1 services/voice \
         --service 2 services/skills \
         --service 3 services/enclosure \
-        --service 3 services/hal \
         --skill skills/homescreen.mycroftai \
         --skill skills/date.mycroftai \
         --skill skills/time.mycroftai \
         --skill skills/mycroft-volume.mycroftai
+        # --skill skills/mycroft-ip.mycroftai \
+        # --skill skills/mycroft-stop.mycroftai \
+        # --skill skills/mycroft-weather.mycroftai \
+        # --skill skills/fallback-unknown.mycroftai \
+        # --skill skills/fallback-query.mycroftai \
+        # --skill skills/mycroft-fallback-duck-duck-go.mycroftai \
+        # --skill skills/mycroft-wiki.mycroftai \
+        # --skill skills/fallback-wolfram-alpha.mycroftai \
 
 # -----------------------------------------------------------------------------
 # Mycroft Container
