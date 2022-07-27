@@ -66,23 +66,28 @@ ENV DINKUM_VENV=/home/pi/.config/mycroft/.venv
 COPY mycroft-dinkum/services/audio/requirements/ ./services/audio/requirements/
 COPY mycroft-dinkum/services/enclosure/requirements/ ./services/enclosure/requirements/
 COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
+COPY mycroft-dinkum/services/hal/requirements/ ./services/hal/requirements/
 COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
 COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
 
-# COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
-# COPY mycroft-dinkum/skills/mycroft-stop.mycroftai/requirements.txt ./skills/mycroft-stop.mycroftai/
-# COPY mycroft-dinkum/skills/fallback-unknown.mycroftai/requirements.txt ./skills/fallback-unknown.mycroftai/
-# COPY mycroft-dinkum/skills/fallback-query.mycroftai/requirements.txt ./skills/fallback-query.mycroftai/
-COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homescreen.mycroftai/
-COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
-COPY mycroft-dinkum/skills/mycroft-ip.mycroftai/requirements.txt ./skills/mycroft-ip.mycroftai/
-COPY mycroft-dinkum/skills/fallback-query.mycroftai/requirements.txt ./skills/mycroft-fallback-query.mycroftai/
-COPY mycroft-dinkum/skills/fallback-wolfram-alpha.mycroftai/requirements.txt ./skills/mycroft-fallback-wolfram-alpha.mycroftai/
-COPY mycroft-dinkum/skills/mycroft-fallback-duck-duck-go.mycroftai/requirements.txt ./skills/mycroft-fallback-duck-duck-go.mycroftai/
-COPY mycroft-dinkum/skills/mycroft-wiki.mycroftai/requirements.txt ./skills/mycroft-wiki.mycroftai/
-COPY mycroft-dinkum/skills/mycroft-weather.mycroftai/requirements.txt ./skills/mycroft-weather.mycroftai/
-COPY mycroft-dinkum/skills/mycroft-volume.mycroftai/requirements.txt ./skills/mycroft-volume.mycroftai/
+# Skill requirements
+COPY mycroft-dinkum/skills/alarm.mark2/requirements.txt ./skills/alarm.mark2/
+# COPY mycroft-dinkum/skills/date.mark2/requirements.txt ./skills/date.mark2/
+# COPY mycroft-dinkum/skills/fallback-query.mark2/requirements.txt ./skills/fallback-query.mark2/
+# COPY mycroft-dinkum/skills/fallback-unknown.mark2/requirements.txt ./skills/fallback-unknown.mark2/
+COPY mycroft-dinkum/skills/homescreen.mark2/requirements.txt ./skills/homescreen.mark2/
+COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
+COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
+# COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
+COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
+COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
+COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
+# COPY mycroft-dinkum/skills/stop.mark2/requirements.txt ./skills/stop.mark2/
+COPY mycroft-dinkum/skills/time.mark2/requirements.txt ./skills/time.mark2/
+COPY mycroft-dinkum/skills/timer.mark2/requirements.txt ./skills/timer.mark2/
+# COPY mycroft-dinkum/skills/volume.mark2/requirements.txt ./skills/volume.mark2/
+COPY mycroft-dinkum/skills/weather.mark2/requirements.txt ./skills/weather.mark2/
 
 # Create shared virtual environment with upgraded pip/setuptools
 #
@@ -131,18 +136,23 @@ RUN scripts/generate-systemd-units.py \
         --service 1 services/voice \
         --service 2 services/skills \
         --service 3 services/enclosure \
-        --skill skills/homescreen.mycroftai \
-        --skill skills/date.mycroftai \
-        --skill skills/time.mycroftai \
-        --skill skills/mycroft-ip.mycroftai \
-        --skill skills/mycroft-stop.mycroftai \
-        --skill skills/mycroft-weather.mycroftai \
-        --skill skills/fallback-unknown.mycroftai \
-        --skill skills/fallback-query.mycroftai \
-        --skill skills/mycroft-fallback-duck-duck-go.mycroftai \
-        --skill skills/mycroft-wiki.mycroftai \
-        --skill skills/fallback-wolfram-alpha.mycroftai \
-        --skill skills/mycroft-volume.mycroftai
+        --skill skills/alarm.mark2 \
+        --skill skills/date.mark2 \
+        --skill skills/fallback-query.mark2 \
+        --skill skills/fallback-unknown.mark2 \
+        --skill skills/homescreen.mark2 \
+        --skill skills/ip.mark2 \
+        --skill skills/news.mark2 \
+        --skill skills/play.mark2 \
+        --skill skills/query-duck-duck-go.mark2 \
+        --skill skills/query-wiki.mark2 \
+        --skill skills/query-wolfram-alpha.mark2 \
+        --skill skills/settings.mark2 \
+        --skill skills/stop.mark2 \
+        --skill skills/time.mark2 \
+        --skill skills/timer.mark2 \
+        --skill skills/volume.mark2 \
+        --skill skills/weather.mark2
 
 # -----------------------------------------------------------------------------
 
