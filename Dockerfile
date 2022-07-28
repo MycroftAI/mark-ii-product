@@ -105,9 +105,10 @@ RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
 
 # Install plugins
 COPY mycroft-dinkum/plugins/ ./plugins/
+COPY mimic3/ ./mimic3/
 RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
-    "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk && \
+    "${DINKUM_VENV}/bin/pip3" install ./mimic3 && \
     "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
 
 # Install shared dinkum library
