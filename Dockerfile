@@ -225,8 +225,8 @@ COPY docker/build/mycroft/install-fonts.sh ./
 RUN ./install-fonts.sh
 
 # Enable/disable services at boot.
-RUN systemctl disable network-manager && \
-    systemctl disable udisks && \
+RUN systemctl disable NetworkManager && \
+    systemctl disable udisks2 && \
     systemctl disable networking && \
     systemctl disable apt-daily-upgrade && \
     systemctl disable snapd.service && \
