@@ -105,9 +105,9 @@ COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requ
 COPY mycroft-dinkum/services/skills/requirements/ ./services/skills/requirements/
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
 
-# COPY mycroft-dinkum/skills/date.mycroftai/requirements.txt ./skills/date.mycroftai/
-COPY mycroft-dinkum/skills/homescreen.mycroftai/requirements.txt ./skills/homescreen.mycroftai/
-COPY mycroft-dinkum/skills/time.mycroftai/requirements.txt ./skills/time.mycroftai/
+# COPY mycroft-dinkum/skills/date.mark2/requirements.txt ./skills/date.mycroftai/
+COPY mycroft-dinkum/skills/homescreen.mark2/requirements.txt ./skills/homescreen.mark2/
+COPY mycroft-dinkum/skills/time.mark2/requirements.txt ./skills/time.mark2/
 
 # Install dinkum services/skills
 RUN python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
