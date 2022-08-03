@@ -76,6 +76,7 @@ COPY mycroft-dinkum/skills/alarm.mark2/requirements.txt ./skills/alarm.mark2/
 # COPY mycroft-dinkum/skills/date.mark2/requirements.txt ./skills/date.mark2/
 # COPY mycroft-dinkum/skills/fallback-query.mark2/requirements.txt ./skills/fallback-query.mark2/
 # COPY mycroft-dinkum/skills/fallback-unknown.mark2/requirements.txt ./skills/fallback-unknown.mark2/
+COPY mycroft-dinkum/skills/homeassistant.mark2/requirements.txt ./skills/homeassistant.mark2/
 COPY mycroft-dinkum/skills/homescreen.mark2/requirements.txt ./skills/homescreen.mark2/
 COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
 COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
@@ -141,6 +142,7 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/date.mark2 \
         --skill skills/fallback-query.mark2 \
         --skill skills/fallback-unknown.mark2 \
+        --skill skills/homeassistant.mark2 \
         --skill skills/homescreen.mark2 \
         --skill skills/ip.mark2 \
         --skill skills/news.mark2 \
