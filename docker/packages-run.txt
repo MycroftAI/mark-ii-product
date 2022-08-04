@@ -1,3 +1,4 @@
+eyed3
 flac
 git
 i2c-tools
@@ -20,6 +21,6 @@ python3-pip
 python3-venv
 python3-websockets
 sox
-udisk2
+udisks2
 vlc
 xorg
