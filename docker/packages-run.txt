@@ -10,6 +10,8 @@ libqt5multimedia5
 libqt5websockets5
 libqt5webview5
 libsdl2-mixer-2.0-0
+mpc
+mpd
 plasma-nano
 plasma-nm
 plasma-pa
@@ -18,5 +20,6 @@ python3-pip
 python3-venv
 python3-websockets
 sox
+udisk2
 vlc
 xorg

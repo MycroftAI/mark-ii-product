@@ -215,6 +215,7 @@ RUN ./install-fonts.sh
 COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
+    systemctl enable /etc/systemd/system/mycroft-automount.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
