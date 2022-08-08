@@ -1,4 +1,5 @@
 alsa-utils
+eyed3
 flac
 git
 i2c-tools
@@ -14,6 +15,8 @@ libqt5multimedia5
 libqt5websockets5
 libqt5webview5
 libsdl2-mixer-2.0-0
+mpc
+mpd
 plasma-nano
 plasma-nm
 plasma-pa
@@ -26,4 +29,5 @@ python3-websockets
 sox
 sudo
 udev
+vlc
 xorg

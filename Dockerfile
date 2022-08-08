@@ -20,7 +20,7 @@
 # Requires buildkit: https://docs.docker.com/develop/develop-images/build_enhancements/
 # -----------------------------------------------------------------------------
 
-ARG BASE_IMAGE=arm64v8/ubuntu:22.04
+ARG BASE_IMAGE=arm64v8/ubuntu:20.04
 
 # -----------------------------------------------------------------------------
 # Mycroft GUI
@@ -33,7 +33,7 @@ ARG TARGETVARIANT
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the locale
-RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y locales  \
 	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 # RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
@@ -44,29 +44,17 @@ WORKDIR /opt/build
 
 COPY docker/packages-build.txt docker/packages-venv.txt ./
 
-# Only Python 3.10 is available on Ubuntu 22.04
-# Get 3.9 from the friendly dead snakes
 RUN apt-get update && \
-    apt install software-properties-common gpg-agent --yes --no-install-recommends
-RUN add-apt-repository ppa:deadsnakes/ppa
-
-RUN apt-get update && \
-    cat packages-build.txt | xargs apt-get install --yes --no-install-recommends
+    cat packages-build.txt packages-*.txt | xargs apt-get install --yes --no-install-recommends
 
 RUN apt-get update && \
     cat packages-venv.txt | xargs apt-get install --yes --no-install-recommends
 
-# Set the default Python interpreter
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
-    update-alternatives --set python /usr/bin/python3.9
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
-    update-alternatives --set python3 /usr/bin/python3.9
-
 WORKDIR /build
 
 # Generate container build timestamp
-COPY docker/build/mycroft/store-build-date.sh ./
-RUN ./store-build-date.sh
+# COPY docker/build/mycroft/store-build-date.sh ./
+# RUN ./store-build-date.sh
 
 COPY docker/build/gui/mycroft-gui/ ./mycroft-gui/
 COPY docker/build/gui/build-mycroft-gui.sh ./
@@ -102,24 +90,49 @@ COPY mycroft-dinkum/services/gui/requirements/ ./services/gui/requirements/
 COPY mycroft-dinkum/services/hal/requirements/ ./services/hal/requirements/
 COPY mycroft-dinkum/services/intent/requirements/ ./services/intent/requirements/
 COPY mycroft-dinkum/services/messagebus/requirements/ ./services/messagebus/requirements/
-COPY mycroft-dinkum/services/skills/requirements/ ./services/skills/requirements/
 COPY mycroft-dinkum/services/voice/requirements/ ./services/voice/requirements/
 
-# COPY mycroft-dinkum/skills/date.mark2/requirements.txt ./skills/date.mycroftai/
+# Skill requirements
+COPY mycroft-dinkum/skills/alarm.mark2/requirements.txt ./skills/alarm.mark2/
+# COPY mycroft-dinkum/skills/date.mark2/requirements.txt ./skills/date.mark2/
+# COPY mycroft-dinkum/skills/fallback-query.mark2/requirements.txt ./skills/fallback-query.mark2/
+# COPY mycroft-dinkum/skills/fallback-unknown.mark2/requirements.txt ./skills/fallback-unknown.mark2/
+COPY mycroft-dinkum/skills/homeassistant.mark2/requirements.txt ./skills/homeassistant.mark2/
 COPY mycroft-dinkum/skills/homescreen.mark2/requirements.txt ./skills/homescreen.mark2/
+COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
+COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
+# COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
+# COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
+COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
+COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
+COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
+# COPY mycroft-dinkum/skills/stop.mark2/requirements.txt ./skills/stop.mark2/
 COPY mycroft-dinkum/skills/time.mark2/requirements.txt ./skills/time.mark2/
+COPY mycroft-dinkum/skills/timer.mark2/requirements.txt ./skills/timer.mark2/
+# COPY mycroft-dinkum/skills/volume.mark2/requirements.txt ./skills/volume.mark2/
+COPY mycroft-dinkum/skills/weather.mark2/requirements.txt ./skills/weather.mark2/
 
-# Install dinkum services/skills
-RUN python3 -m venv --upgrade-deps "${DINKUM_VENV}" && \
-    "${DINKUM_VENV}/bin/pip3" install --upgrade wheel
+# Create shared virtual environment with upgraded pip/setuptools
+#
+# NOTE: It's crucial that system site packages are available so the HAL service
+# can access RPi.GPIO.
+#
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    python3 -m venv --system-site-packages "${DINKUM_VENV}" && \
+    "${DINKUM_VENV}/bin/pip3" install --upgrade pip && \
+    "${DINKUM_VENV}/bin/pip3" install --upgrade wheel setuptools
 
-RUN find ./ -name 'requirements.txt' -type f -print0 | \
+# Install dinkum service/skill requirements
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    find ./ -name 'requirements.txt' -type f -print0 | \
     xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
 
 # Install plugins
 COPY mycroft-dinkum/plugins/ ./plugins/
-RUN "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
-    "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk && \
+COPY mimic3/ ./mimic3/
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
+    "${DINKUM_VENV}/bin/pip3" install ./mimic3 && \
     "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
 
 # Install shared dinkum library
@@ -133,11 +146,11 @@ COPY mycroft-dinkum/shared/mycroft/py.typed \
      mycroft-dinkum/shared/mycroft/__init__.py \
      shared/mycroft/
 
-RUN "${DINKUM_VENV}/bin/pip3" install -e ./shared/
-
-COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
+RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+    "${DINKUM_VENV}/bin/pip3" install -e ./shared/
 
 # Create dinkum.target and services
+COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
 RUN scripts/generate-systemd-units.py \
         --user mycroft \
         --service 0 services/messagebus \
@@ -148,18 +161,25 @@ RUN scripts/generate-systemd-units.py \
         --service 1 services/voice \
         --service 2 services/skills \
         --service 3 services/enclosure \
-        --skill skills/homescreen.mycroftai \
-        --skill skills/date.mycroftai \
-        --skill skills/time.mycroftai \
-        --skill skills/mycroft-volume.mycroftai
-        # --skill skills/mycroft-ip.mycroftai \
-        # --skill skills/mycroft-stop.mycroftai \
-        # --skill skills/mycroft-weather.mycroftai \
-        # --skill skills/fallback-unknown.mycroftai \
-        # --skill skills/fallback-query.mycroftai \
-        # --skill skills/mycroft-fallback-duck-duck-go.mycroftai \
-        # --skill skills/mycroft-wiki.mycroftai \
-        # --skill skills/fallback-wolfram-alpha.mycroftai \
+        --skill skills/alarm.mark2 \
+        --skill skills/date.mark2 \
+        --skill skills/fallback-query.mark2 \
+        --skill skills/fallback-unknown.mark2 \
+        --skill skills/homeassistant.mark2 \
+        --skill skills/homescreen.mark2 \
+        --skill skills/ip.mark2 \
+        --skill skills/news.mark2 \
+        --skill skills/play.mark2 \
+        --skill skills/play-music.mark2 \
+        --skill skills/query-duck-duck-go.mark2 \
+        --skill skills/query-wiki.mark2 \
+        --skill skills/query-wolfram-alpha.mark2 \
+        --skill skills/settings.mark2 \
+        --skill skills/stop.mark2 \
+        --skill skills/time.mark2 \
+        --skill skills/timer.mark2 \
+        --skill skills/volume.mark2 \
+        --skill skills/weather.mark2
 
 # -----------------------------------------------------------------------------
 # Mycroft Container
@@ -171,39 +191,32 @@ ARG TARGETVARIANT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Add Mycroft alternatives
+RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
+    apt-get update && \
+    apt-get --yes --no-install-recommends install \
+    software-properties-common gpg-agent locales
+
 # Set the locale
-RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
-	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-# RUN locale-gen en_US.UTF-8
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
+# Install external repo for plasma-nano package
+COPY docker/build/mycroft/mycroft-alternatives.gpg.key ./
+RUN apt-key add ./mycroft-alternatives.gpg.key
+COPY docker/build/mycroft/mycroft-alt.list /etc/apt/sources.list.d/
+
 WORKDIR /opt/build
 
-# Only Python 3.10 is available on Ubuntu 22.04
-# Get 3.9 from the friendly dead snakes
-RUN apt-get update && \
-    apt install software-properties-common gpg-agent --yes --no-install-recommends
-RUN add-apt-repository ppa:deadsnakes/ppa
-
 COPY docker/packages-run.txt docker/packages-dev.txt ./
-
 RUN apt-get update && \
     cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
 
-# Set the default Python interpreter and remove 3.10 packages
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 && \
-    update-alternatives --set python /usr/bin/python3.9
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 && \
-    update-alternatives --set python3 /usr/bin/python3.9
-# TODO: Removing the default python packages removes a lot of system dependencies
-#       that we actually need. Need to find a safe way to do this.
-# RUN apt remove python3.10* libpython3.10* idle-python3.10 --no-install-recommends
-
 # Copy pre-built GUI files
 # TODO check why we are copy etc here.
-COPY --from=build /etc/mycroft/ /etc/mycroft/
+# COPY --from=build /etc/mycroft/ /etc/mycroft/
 COPY --from=build /usr/local/ /usr/
 COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
@@ -216,6 +229,7 @@ COPY docker/files/usr/ /usr/
 COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
 COPY docker/files/lib/ /lib/
+COPY docker/files/opt/ /opt/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
 COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
 
@@ -236,9 +250,6 @@ RUN systemctl disable NetworkManager && \
 COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
-    systemctl enable /etc/systemd/system/mycroft-switch.service && \
-    systemctl enable /etc/systemd/system/mycroft-volume.service && \
-    systemctl enable /etc/systemd/system/mycroft-leds.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
@@ -284,4 +295,3 @@ WORKDIR /home/mycroft
 RUN rm -rf /opt/build
 
 ENTRYPOINT [ "/lib/systemd/systemd" ]
-

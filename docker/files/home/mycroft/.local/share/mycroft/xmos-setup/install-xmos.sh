@@ -12,4 +12,6 @@ venv_dir="${this_dir}/venv"
 # can be used.
 rm -rf "${venv_dir}"
 python3 -m venv --system-site-packages "${venv_dir}"
+"${venv_dir}/bin/pip3" install --upgrade pip
+"${venv_dir}/bin/pip3" install --upgrade wheel setuptools
 "${venv_dir}/bin/pip3" install -r "${this_dir}/requirements.txt"

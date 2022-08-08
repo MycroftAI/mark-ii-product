@@ -1,10 +1,11 @@
 *
-!raspberry-pi-os/p2.tar
 !docker/packages-*.txt
 !docker/build/
 !docker/files/etc/
 !docker/files/lib/
 !docker/files/usr/
 !docker/files/var/
+!docker/files/opt/
 !docker/files/home/mycroft/
 !/mycroft-dinkum
+!mimic3/
