@@ -7,6 +7,7 @@ User=mycroft
 WorkingDirectory=/home/mycroft
 PAMName=login
 Environment=XDG_SESSION_TYPE=x11
+Environment=DBUS_SYSTEM_BUS_ADDRESS=unix:path=/awconnect/tmp/system_bus_socket
 TTYPath=/dev/tty8
 StandardInput=tty
 UnsetEnvironment=TERM
