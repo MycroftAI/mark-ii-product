@@ -4,7 +4,7 @@ set -ex
 # Directory of *this* script
 this_dir="$( cd "$( dirname "$0" )" && pwd )"
 
-venv_dir="${this_dir}/venv"
+venv_dir="${this_dir}/.venv"
 
 if [ ! -d "${venv_dir}" ]; then
     echo "Missing virtual environment in ${venv_dir}";
