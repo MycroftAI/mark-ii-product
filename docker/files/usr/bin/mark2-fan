@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
 # Copyright 2022 Mycroft AI Inc.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,51 +20,18 @@
 #
 # Example: mark2-fan 50
 
-import argparse
-import subprocess
+speed="$1"
+if [ -z "${speed}" ]; then
+    echo 'Usage: mark2-fan speed'
+    exit 1
+fi
 
-BUS_ID = 1
-DEVICE_ADDRESS = 0x04
-FAN_ID = 101
-
-MAX_SPEED = 100
-MIN_SPEED = 0
-
-MIN_HARDWARE_VALUE = 0
-MAX_HARDWARE_VALUE = 255
-
-
-def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "speed", type=int, default=50, help="Speed between 0 (off) and 100 (max)"
-    )
-    args = parser.parse_args()
-
-    # Clamp speed and convert to hardware value
-    speed = max(MIN_SPEED, min(MAX_SPEED, args.speed))
-    hardware_value = int(
-        MIN_HARDWARE_VALUE
-        + (
-            (MAX_HARDWARE_VALUE - MIN_HARDWARE_VALUE)
-            * (speed / (MAX_SPEED - MIN_SPEED))
-        )
-    )
-
-    set_command = [
-        "i2cset",
-        "-y",  # disable interactive mode
-        "-a",  # allow access to LED device range
-        str(BUS_ID),
-        f"0x{DEVICE_ADDRESS:02x}",
-        f"0x{FAN_ID:02x}",
-        str(hardware_value),
-        "i",  # block data
-    ]
-
-    subprocess.check_call(set_command)
-
-
-if __name__ == "__main__":
-    main()
+dbus-send \
+    --system \
+    --print-reply \
+    --type=method_call \
+    --dest=ai.mycroft.mark2 \
+    /ai/mycroft/mark2/fan \
+    org.freedesktop.DBus.Properties.Set \
+    string:ai.mycroft.Mark2FanInterface \
+    string:speed "variant:byte:${speed}"

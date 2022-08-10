@@ -1,0 +1,8 @@
+[Unit]
+Description=DBus server for hardware access
+
+[Service]
+ExecStart=/opt/mycroft-mark2-hardware/run.sh
+
+[Install]
+WantedBy=default.target

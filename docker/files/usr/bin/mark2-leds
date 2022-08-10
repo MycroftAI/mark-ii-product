@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env bash
 # Copyright 2022 Mycroft AI Inc.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -18,64 +18,39 @@
 #
 # Sets the LEDs on the Mark II to the specified colors.
 #
-# Example: mark2-leds R1 G1 B1 R2 G2 B2 ...
+# Example: mark2-leds R1,G1,B1,R2,G2,B2 [brightness]
 #
-# Colors are cycled if missing, so R1 G1 B1 R2 G2 B2 will be
-# R1 G1 B1 R2 G2 B2 R1 G1 B1 R2 G2 B2 ... for all LEDs.
+# Colors are cycled if missing, so R1,G1,B1,R2,G2,B2 will be
+# R1,G1,B1,R2,G2,B2,R1,G1,B1,R2,G2,B2 ... for all LEDs.
+#
+# Brightness is 0-100
 
-import itertools
-import subprocess
-import sys
+rgb="$1"
+brightness="$2"
 
-BUS_ID = 1
-DEVICE_ADDRESS = 0x04
+if [ -z "${rgb}" ]; then
+    echo 'Usage: mark2-leds r1,g1,b1,r2,g2,b2,... [brightness]'
+    exit 1
+fi
 
-MAX_COLOR = 255
-MIN_COLOR = 0
-NUM_COLORS = 3
+dbus-send \
+    --system \
+    --print-reply \
+    --type=method_call \
+    --dest=ai.mycroft.mark2 \
+    /ai/mycroft/mark2/led \
+    org.freedesktop.DBus.Properties.Set \
+    string:ai.mycroft.Mark2LedInterface \
+    string:rgb "variant:string:${rgb}"
 
-NUM_LEDS = 12
-FIRST_LED = 0
-MAX_LEDS_PER_WRITE = 10
-
-
-def main():
-    """Main entry point"""
-
-    # r1 g1 b1 r2 g2 b2 ...
-    values = [min(MAX_COLOR, max(MIN_COLOR, int(arg))) for arg in sys.argv[1:]]
-
-    # Default to black if no arguments
-    values = values or [MIN_COLOR]
-
-    # Ensure a full triplet
-    while (len(values) % NUM_COLORS) != 0:
-        values.append(MIN_COLOR)
-
-    # Repeat color for all leds, if necessary
-    rgb = list(itertools.islice(itertools.cycle(values), 0, NUM_LEDS * NUM_COLORS))
-
-    # Write in blocks to avoid overloading i2cset
-    last_value = MAX_LEDS_PER_WRITE * NUM_COLORS
-    write_offset = 0
-    while rgb:
-        set_command = [
-            "i2cset",
-            "-y",  # disable interactive mode
-            "-a",  # allow access to LED device range
-            str(BUS_ID),
-            f"0x{DEVICE_ADDRESS:02x}",
-            f"0x{FIRST_LED + write_offset:02x}",
-            *(str(value) for value in rgb[:last_value]),
-            "i",  # block data
-        ]
-
-        subprocess.check_call(set_command)
-
-        # Next block
-        rgb = rgb[last_value:]
-        write_offset += MAX_LEDS_PER_WRITE
-
-
-if __name__ == "__main__":
-    main()
+if [ -n "${brightness}" ]; then
+    dbus-send \
+        --system \
+        --print-reply \
+        --type=method_call \
+        --dest=ai.mycroft.mark2 \
+        /ai/mycroft/mark2/led \
+        org.freedesktop.DBus.Properties.Set \
+        string:ai.mycroft.Mark2LedInterface \
+        string:brightness "variant:byte:${brightness}"
+fi
