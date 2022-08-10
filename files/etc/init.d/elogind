@@ -1,0 +1,32 @@
+#!/sbin/openrc-run
+supervisor=supervise-daemon
+
+name="System login manager"
+description="System service that manages user logins"
+description_reload="Reload configuration without exiting"
+
+command=/usr/libexec/elogind/elogind
+
+depend() {
+	need dbus udev
+
+	# Make sure we start before any other display manager
+	before xdm lxdm sddm gdm
+}
+
+start_pre() {
+	test -d /run/systemd/ || mkdir -p /run/systemd/
+	test -d /run/user || mkdir -p /run/user/
+	test -d /sys/fs/cgroup || exit 2
+	test -d /sys/fs/cgroup/elogind/ || mkdir -p /sys/fs/cgroup/elogind/
+	mountpoint /run/user/ >/dev/null || mount -t tmpfs none /run/user/ -o mode=755
+	mountpoint /sys/fs/cgroup/elogind/ >/dev/null || mount -t cgroup cgroup /sys/fs/cgroup/elogind -o none,name=elogind
+}
+
+extra_started_commands="reload"
+
+reload() {
+	ebegin "Reloading configuration"
+	$supervisor $RC_SVCNAME --signal HUP
+	eend $?
+}

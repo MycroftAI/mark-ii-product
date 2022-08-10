@@ -1,0 +1,1 @@
+mycroft ALL=(ALL) NOPASSWD: /usr/bin/apt-get install *, /usr/bin/apt install *, /usr/bin/pkcon install *

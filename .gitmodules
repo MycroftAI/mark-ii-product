@@ -1,0 +1,21 @@
+[submodule "mycroft-dinkum"]
+	path = mycroft-dinkum
+	url = https://github.com/mycroftai/mycroft-dinkum
+[submodule "mycroft-gui"]
+	path = mycroft-gui
+	url = https://github.com/MycroftAI/mycroft-gui
+[submodule "mycroft-gui-mark-2"]
+	path = mycroft-gui-mark-2
+	url = https://github.com/MycroftAI/mycroft-gui-mark-2
+[submodule "lottie-qml"]
+	path = lottie-qml
+	url = https://github.com/kbroulik/lottie-qml
+[submodule "userland"]
+	path = userland
+	url = https://github.com/raspberrypi/userland
+[submodule "mimic3"]
+	path = mimic3
+	url = https://github.com/mycroftai/mimic3
+[submodule "precise-data"]
+	path = precise-data
+	url = https://github.com/MycroftAI/precise-data.git

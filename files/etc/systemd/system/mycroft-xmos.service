@@ -1,0 +1,11 @@
+[Unit]
+Description=Mycroft Mark II XMOS Setup
+
+[Service]
+Type=oneshot
+ExecStart=/opt/mycroft/start-xmos.sh
+WorkingDirectory=/opt/mycroft/
+Nice=-10
+
+[Install]
+WantedBy=default.target

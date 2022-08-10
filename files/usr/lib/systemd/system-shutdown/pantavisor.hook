@@ -1,0 +1,7 @@
+#!/bin/bash
+
+base=/usr/local/bin/pv
+cmd="${base}$1"
+
+$cmd
+tail -f /dev/null

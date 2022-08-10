@@ -1,0 +1,13 @@
+[Unit]
+Description=Last second pvreboot
+DefaultDependencies=no
+Conflicts=poweroff.target halt.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=pvreboot
+
+[Install]
+WantedBy=reboot.target
+
