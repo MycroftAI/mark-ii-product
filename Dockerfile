@@ -82,6 +82,7 @@ COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
 COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
 # COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
 # COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
+# COPY mycroft-dinkum/skills/play-radio.mark2/requirements.txt ./skills/play-radio.mark2/
 COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
 COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
 COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
@@ -149,6 +150,7 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/news.mark2 \
         --skill skills/play.mark2 \
         --skill skills/play-music.mark2 \
+        --skill skills/play-radio.mark2 \
         --skill skills/query-duck-duck-go.mark2 \
         --skill skills/query-wiki.mark2 \
         --skill skills/query-wolfram-alpha.mark2 \
@@ -208,6 +210,11 @@ COPY docker/files/etc/ /etc/
 COPY docker/files/var/ /var/
 COPY docker/files/opt/ /opt/
 
+# Set up DBus hardware server
+RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
+    cd /opt/mycroft-mark2-hardware && \
+    ./install.sh
+
 # Install the Noto Sans font family
 ADD docker/build/mycroft/NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
 COPY docker/build/mycroft/install-fonts.sh ./
@@ -218,6 +225,7 @@ COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
 RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-automount.service && \
+    systemctl enable /etc/systemd/system/mycroft-hardware-dbus.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
