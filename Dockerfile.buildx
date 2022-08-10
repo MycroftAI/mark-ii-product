@@ -244,21 +244,6 @@ COPY --from=venv --chown=mycroft:mycroft /home/mycroft/.local/share/mycroft/xmos
 COPY files/root/.cache/pip-mycroft/ /root/.cache/pip-mycroft/
 ENV PIP_FIND_LINKS='/root/.cache/pip-mycroft/'
 
-# Install Precise
-ADD precise-data/hey-mycroft.tar.gz /home/mycroft/.mycroft/precise/
-
-# Install Mimic 3
-COPY --chown=mycroft:mycroft files/etc/mycroft/mimic3/ /etc/mycroft/mimic3/
-COPY build/01-mycroft/install-mimic3.sh ./
-RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
-    ./install-mimic3.sh
-
-# Install Precise Lite
-COPY --chown=mycroft:mycroft files/etc/mycroft/precise-lite/ /etc/mycroft/precise-lite/
-COPY build/01-mycroft/install-precise.sh ./
-RUN --mount=type=cache,id=pip-run,target=/root/.cache/pip \
-    ./install-precise.sh
-
 # Install Mycroft Dinkum
 COPY mycroft-dinkum/ /opt/mycroft-dinkum/
 

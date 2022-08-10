@@ -16,6 +16,3 @@
 [submodule "mimic3"]
 	path = mimic3
 	url = https://github.com/mycroftai/mimic3
-[submodule "precise-data"]
-	path = precise-data
-	url = https://github.com/MycroftAI/precise-data.git
