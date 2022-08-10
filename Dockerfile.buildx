@@ -73,7 +73,7 @@ RUN cd /home/mycroft/.local/share/mycroft/xmos-setup && \
     ./install-xmos.sh
     
 # Create dinkum (shared) virtual environment
-WORKDIR /opt/mycroft-dinkum
+WORKDIR /opt/mycroft
 
 ENV DINKUM_VENV=/home/mycroft/.config/mycroft/.venv
 
@@ -245,7 +245,7 @@ COPY files/root/.cache/pip-mycroft/ /root/.cache/pip-mycroft/
 ENV PIP_FIND_LINKS='/root/.cache/pip-mycroft/'
 
 # Install Mycroft Dinkum
-COPY mycroft-dinkum/ /opt/mycroft-dinkum/
+COPY mycroft-dinkum/ /opt/mycroft/
 
 # Configure audio
 COPY debs/libportaudio2_19.6.0-1build1.1_arm64.deb ./portaudio_patch.deb
