@@ -56,15 +56,15 @@ WORKDIR /build
 # COPY docker/build/mycroft/store-build-date.sh ./
 # RUN ./store-build-date.sh
 
-COPY docker/build/gui/mycroft-gui/ ./mycroft-gui/
+COPY mycroft-dinkum/services/gui/mycroft-gui/ ./mycroft-gui/
 COPY docker/build/gui/build-mycroft-gui.sh ./
 RUN ./build-mycroft-gui.sh
 
-COPY docker/build/gui/lottie-qml/ ./lottie-qml/
+COPY mycroft-dinkum/services/gui/lottie-qml/ ./lottie-qml/
 COPY docker/build/gui/build-lottie-qml.sh ./
 RUN ./build-lottie-qml.sh
 
-COPY docker/build/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
+COPY mycroft-dinkum/services/gui/mycroft-gui-mark-2/ ./mycroft-gui-mark-2/
 COPY docker/build/gui/build-mycroft-gui-mark-2.sh ./
 RUN ./build-mycroft-gui-mark-2.sh
 
