@@ -24,6 +24,7 @@ usermod -a -G video mycroft
 usermod -a -G kmem mycroft
 usermod -a -G render mycroft
 usermod -a -G tty mycroft
+usermod -a -G input mycroft
 
 # Add Mycroft config directory - ensuring it already exists on first boot
 mkdir -p $mycroft_config_dir
