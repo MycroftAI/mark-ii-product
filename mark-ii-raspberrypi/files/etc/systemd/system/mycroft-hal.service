@@ -1,0 +1,9 @@
+[Unit]
+Description=DBus server for hardware access
+
+[Service]
+Type=simple
+ExecStart=/opt/mycroft/dbus-hal/run.sh
+
+[Install]
+WantedBy=default.target

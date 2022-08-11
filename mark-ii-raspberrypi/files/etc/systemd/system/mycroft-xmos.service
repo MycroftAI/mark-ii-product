@@ -1,0 +1,10 @@
+[Unit]
+Description=Mycroft Mark II XMOS Setup
+
+[Service]
+Type=oneshot
+User=pi
+ExecStart=/opt/mycroft/xmos-microphone/run.sh
+
+[Install]
+WantedBy=default.target

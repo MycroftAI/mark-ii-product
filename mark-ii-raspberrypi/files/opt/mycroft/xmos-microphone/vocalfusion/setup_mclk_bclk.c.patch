@@ -1,0 +1,12 @@
+276a277,280
+>     // Mycroft
+>     clk_i = 30;
+>     clf_f = 2120;
+> 
+321a326,331
+> 
+>     // Mycroft
+>     clk_i = 244;
+>     clk_f = 144;
+>     clk_mash = 0;
+> 
