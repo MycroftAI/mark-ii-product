@@ -1,0 +1,5 @@
+adafruit-blinka
+adafruit-circuitpython-neopixel
+adafruit-circuitpython-pixelbuf
+dbus-next
+rpi_ws281x

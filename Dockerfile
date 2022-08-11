@@ -20,37 +20,42 @@
 # Requires buildkit: https://docs.docker.com/develop/develop-images/build_enhancements/
 # -----------------------------------------------------------------------------
 
-ARG BASE_IMAGE=arm64v8/ubuntu:20.04
+ARG BASE_IMAGE=ubuntu:20.04
 
-# -----------------------------------------------------------------------------
-# Mycroft GUI
-# -----------------------------------------------------------------------------
-
-FROM $BASE_IMAGE as build
+# Base image with locale set
+FROM $BASE_IMAGE as base-with-locale
 ARG TARGETARCH
 ARG TARGETVARIANT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the locale
-RUN apt-get update && apt-get install -y locales  \
+RUN --mount=type=cache,id=apt-base-with-local,target=/var/cache/apt \
+    apt-get update && apt-get install -y locales  \
 	&& localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-# RUN locale-gen en_US.UTF-8
+
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-WORKDIR /opt/build
+# -----------------------------------------------------------------------------
 
-COPY docker/packages-build.txt docker/packages-venv.txt ./
-
-RUN apt-get update && \
-    cat packages-build.txt packages-*.txt | xargs apt-get install --yes --no-install-recommends
-
-RUN apt-get update && \
-    cat packages-venv.txt | xargs apt-get install --yes --no-install-recommends
+# Base image for building tools and virtual environments
+FROM base-with-locale as base-build
 
 WORKDIR /build
+
+COPY docker/packages-build.txt docker/packages-venv.txt ./
+RUN --mount=type=cache,id=apt-base-build,target=/var/cache/apt \
+    apt-get update && \
+    cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
+
+# -----------------------------------------------------------------------------
+# Build
+# -----------------------------------------------------------------------------
+
+# Image where Mycroft GUI is built
+FROM base-build as build-gui
 
 # Generate container build timestamp
 # COPY docker/build/mycroft/store-build-date.sh ./
@@ -72,15 +77,37 @@ ADD docker/build/gui/userland ./userland
 COPY docker/build/gui/build-userland.sh ./
 RUN ./build-userland.sh
 
-# Set up XMOS startup sequence
-COPY docker/files/home/mycroft/.local/ /home/mycroft/.local/
-RUN cd /home/mycroft/.local/share/mycroft/xmos-setup && \
-    ./install-xmos.sh
+# -----------------------------------------------------------------------------
+
+# Image where XMOS/HAL services are built
+FROM base-build as build-hal
+
+WORKDIR /opt/mycroft
+
+# XMOS (microhone)
+COPY mark-ii-raspberrypi/files/opt/mycroft/xmos-microphone/requirements.txt \
+     mark-ii-raspberrypi/files/opt/mycroft/xmos-microphone/install.sh \
+     ./xmos-microphone/
+RUN --mount=type=cache,id=pip-build-hal,target=/root/.cache/pip \
+    cd ./xmos-microphone && \
+    ./install.sh
+
+# DBus server (LEDs, fan, buttons, volume)
+COPY mark-ii-raspberrypi/files/opt/mycroft/dbus-hal/requirements.txt \
+     mark-ii-raspberrypi/files/opt/mycroft/dbus-hal/install.sh \
+     ./dbus-hal/
+RUN --mount=type=cache,id=pip-build-hal,target=/root/.cache/pip \
+    cd ./dbus-hal && \
+    ./install.sh
+
+# -----------------------------------------------------------------------------
+
+FROM base-build as build-dinkum
 
 # Create dinkum (shared) virtual environment
 WORKDIR /opt/mycroft-dinkum
 
-ENV DINKUM_VENV=/home/mycroft/.config/mycroft/.venv
+ENV DINKUM_VENV=/opt/mycroft-dinkum/.venv
 
 # Just copy requirements and scripts so we don't have to rebuild this every time
 # a code file changes.
@@ -103,6 +130,7 @@ COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
 COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
 # COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
 # COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
+# COPY mycroft-dinkum/skills/play-radio.mark2/requirements.txt ./skills/play-radio.mark2/
 COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
 COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
 COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
@@ -117,20 +145,20 @@ COPY mycroft-dinkum/skills/weather.mark2/requirements.txt ./skills/weather.mark2
 # NOTE: It's crucial that system site packages are available so the HAL service
 # can access RPi.GPIO.
 #
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     python3 -m venv --system-site-packages "${DINKUM_VENV}" && \
     "${DINKUM_VENV}/bin/pip3" install --upgrade pip && \
     "${DINKUM_VENV}/bin/pip3" install --upgrade wheel setuptools
 
 # Install dinkum service/skill requirements
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     find ./ -name 'requirements.txt' -type f -print0 | \
     xargs -0 printf -- '-r %s ' | xargs "${DINKUM_VENV}/bin/pip3" install
 
 # Install plugins
 COPY mycroft-dinkum/plugins/ ./plugins/
 COPY mimic3/ ./mimic3/
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
     "${DINKUM_VENV}/bin/pip3" install ./mimic3 && \
     "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
@@ -146,13 +174,14 @@ COPY mycroft-dinkum/shared/mycroft/py.typed \
      mycroft-dinkum/shared/mycroft/__init__.py \
      shared/mycroft/
 
-RUN --mount=type=cache,id=pip-build,target=/root/.cache/pip \
+RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install -e ./shared/
 
 # Create dinkum.target and services
 COPY mycroft-dinkum/scripts/generate-systemd-units.py ./scripts/
 RUN scripts/generate-systemd-units.py \
         --user mycroft \
+        --venv-dir "${DINKUM_VENV}" \
         --service 0 services/messagebus \
         --service 1 services/hal \
         --service 1 services/audio \
@@ -171,6 +200,7 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/news.mark2 \
         --skill skills/play.mark2 \
         --skill skills/play-music.mark2 \
+        --skill skills/play-radio.mark2 \
         --skill skills/query-duck-duck-go.mark2 \
         --skill skills/query-wiki.mark2 \
         --skill skills/query-wolfram-alpha.mark2 \
@@ -182,14 +212,10 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/weather.mark2
 
 # -----------------------------------------------------------------------------
-# Mycroft Container
+# Run
 # -----------------------------------------------------------------------------
 
-FROM $BASE_IMAGE as run
-ARG TARGETARCH
-ARG TARGETVARIANT
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM base-with-locale as run
 
 # Add Mycroft alternatives
 RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
@@ -197,41 +223,18 @@ RUN --mount=type=cache,id=apt-run,target=/var/cache/apt \
     apt-get --yes --no-install-recommends install \
     software-properties-common gpg-agent locales
 
-# Set the locale
-RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
-
 # Install external repo for plasma-nano package
 COPY docker/build/mycroft/mycroft-alternatives.gpg.key ./
 RUN apt-key add ./mycroft-alternatives.gpg.key
 COPY docker/build/mycroft/mycroft-alt.list /etc/apt/sources.list.d/
 
-WORKDIR /opt/build
-
 COPY docker/packages-run.txt docker/packages-dev.txt ./
 RUN apt-get update && \
     cat packages-*.txt | xargs apt-get install --yes --no-install-recommends
 
-# Copy pre-built GUI files
-# TODO check why we are copy etc here.
-# COPY --from=build /etc/mycroft/ /etc/mycroft/
-COPY --from=build /usr/local/ /usr/
-COPY --from=build /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
-
 # Create mycroft user (#1050)
 COPY docker/build/mycroft/create-mycroft-user.sh ./
 RUN ./create-mycroft-user.sh
-
-# Copy system files
-COPY docker/files/usr/ /usr/
-COPY docker/files/etc/ /etc/
-COPY docker/files/var/ /var/
-COPY docker/files/lib/ /lib/
-COPY docker/files/opt/ /opt/
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.asoundrc /home/mycroft/
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/ /home/mycroft/.local/
 
 # Install the Noto Sans font family
 ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
@@ -247,24 +250,34 @@ RUN systemctl disable NetworkManager && \
     systemctl disable snapd.socket && \
     systemctl disable kmod-static-nodes
 
-COPY --from=build /etc/systemd/system/dinkum* /etc/systemd/system/
-RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
-    systemctl enable /etc/systemd/system/mycroft-plasma.service && \
-    systemctl enable /etc/systemd/system/dinkum.target && \
-    systemctl set-default graphical
+# Copy pre-built GUI files
+COPY --from=build-gui /usr/local/ /usr/
+COPY --from=build-gui /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
 
-RUN mkdir -p /var/log/mycroft && \
-    chown -R mycroft:mycroft /var/log/mycroft
+# Copy HAL tools
+COPY --from=build-hal --chown=mycroft:mycroft /opt/mycroft/ /opt/mycroft/
 
 # Copy dinkum code and virtual environment
-COPY --from=build --chown=mycroft:mycroft /home/mycroft/.config/mycroft/.venv /home/mycroft/.config/mycroft/.venv
-COPY --from=build --chown=mycroft:mycroft /home/mycroft/.local/share/mycroft/xmos-setup/venv /home/mycroft/.local/share/mycroft/xmos-setup/venv
-COPY mycroft-dinkum/ /opt/mycroft-dinkum/
+COPY --from=build-dinkum --chown=mycroft:mycroft /opt/mycroft-dinkum/ /opt/mycroft-dinkum/
+COPY --chown=mycroft:mycroft mycroft-dinkum/ /opt/mycroft-dinkum/
+RUN rm -f /opt/mycroft-dinkum/.git
+COPY --chown=mycroft:mycroft .git/modules/mycroft-dinkum/ /opt/mycroft-dinkum/.git/
+RUN sed -i 's|worktree\s+=.*|worktree = ../|' /opt/mycroft-dinkum/.git/config
+
+# Copy system files
+COPY docker/files/etc/ /etc/
+COPY docker/files/lib/ /lib/
+COPY docker/files/opt/ /opt/
+COPY docker/files/usr/ /usr/
+COPY mark-ii-raspberrypi/files/etc/ /etc/
+COPY mark-ii-raspberrypi/files/opt/ /opt/
+COPY mark-ii-raspberrypi/files/usr/ /usr/
+COPY mark-ii-raspberrypi/pre-built/ /
 
 # Copy user files
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.bash_profile /home/mycroft/
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.local/share/ /home/mycroft/.local/share/
-COPY --chown=mycroft:mycroft docker/files/home/mycroft/.config/ /home/mycroft/.config/
+COPY --chown=mycroft:mycroft mark-ii-raspberrypi/files/home/pi/ /home/mycroft/
+COPY --chown=mycroft:mycroft docker/files/home/mycroft/ /home/mycroft/
+
 # The .config directory is not getting the right owner for some reason - force it.
 RUN chown mycroft:mycroft /home/mycroft/.config
 
@@ -279,10 +292,16 @@ COPY docker/build/pantacor/install-pantacor-tools.sh ./
 # TODO enable poweroff and reboot units
 RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 
-# Install rpi.gpio last to avoid issues with switch server
-# TODO - This should be available to the XMOS service but it is failing to find the module.
-#        Have installed it in the XMOS venv as well.
-RUN apt-get update && apt-get install -y python3-rpi.gpio
+COPY --from=build-dinkum /etc/systemd/system/dinkum* /etc/systemd/system/
+RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
+    systemctl enable /etc/systemd/system/mycroft-hal.service && \
+    systemctl enable /etc/systemd/system/mycroft-boot.service && \
+    systemctl enable /etc/systemd/system/mycroft-plasma.service && \
+    systemctl enable /etc/systemd/system/dinkum.target && \
+    systemctl set-default graphical
+
+# RUN mkdir -p /var/log/mycroft && \
+#     chown -R mycroft:mycroft /var/log/mycroft
 
 # TODO: remove lib/modules and lib/firmware
 

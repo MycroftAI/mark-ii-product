@@ -1,6 +1,7 @@
 bash-completion
 less
 nano
+openssh-client
 rsync
 tmux
 vim

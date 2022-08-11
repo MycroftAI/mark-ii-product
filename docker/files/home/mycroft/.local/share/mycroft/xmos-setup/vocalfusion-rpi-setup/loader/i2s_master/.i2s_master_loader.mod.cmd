@@ -1,1 +1,0 @@
-cmd_/home/mycroft/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.mod := { echo  /home/mycroft/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.o;  echo; } > /home/mycroft/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.mod
