@@ -308,9 +308,9 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
 # Clean up
 RUN apt-get clean && \
     apt-get autoremove --yes && \
-    rm -rf /var/lib/apt/
+    rm -rf /var/lib/apt/ && \
+    rm -f /etc/apt/apt.conf.d/01cache
 
 WORKDIR /home/mycroft
-RUN rm -rf /opt/build
 
 ENTRYPOINT [ "/lib/systemd/systemd" ]
