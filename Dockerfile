@@ -238,7 +238,7 @@ COPY --from=build-dinkum --chown=pi:pi /opt/mycroft-dinkum/ /opt/mycroft-dinkum/
 COPY --chown=pi:pi mycroft-dinkum/ /opt/mycroft-dinkum/
 RUN rm -f /opt/mycroft-dinkum/.git
 COPY --chown=pi:pi .git/modules/mycroft-dinkum/ /opt/mycroft-dinkum/.git/
-RUN sed -i 's|worktree\s+=.*|worktree = ../|' /opt/mycroft-dinkum/.git/config
+RUN sed -i 's|worktree\s\+=.*|worktree = ../|' /opt/mycroft-dinkum/.git/config
 
 # Copy system files
 COPY docker/files/etc/ /etc/
