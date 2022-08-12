@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Clone any submodules
+git submodule update --init
+
+# Prepare the QEMU emulator for multiarchitecture builds
+docker run --privileged --rm tonistiigi/binfmt --install all
+docker buildx create --name multiarch --driver docker-container --use --bootstrap
