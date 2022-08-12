@@ -1,0 +1,1 @@
+docker buildx build --push --platform linux/arm64 --tag ${DOCKER_REPO}:${DOCKER_TAG} .

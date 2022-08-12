@@ -1,6 +1,6 @@
 *
 !docker/
-!/mycroft-dinkum
+!mycroft-dinkum/
 !mimic3/
 !mark-ii-raspberrypi
 !.git/modules/mycroft-dinkum/
