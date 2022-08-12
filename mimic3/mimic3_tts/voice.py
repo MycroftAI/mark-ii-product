@@ -400,6 +400,11 @@ class Mimic3Voice(metaclass=ABCMeta):
 
         session_options.use_deterministic_compute = use_deterministic_compute
 
+        # Keep memory usage lower
+        session_options.enable_cpu_mem_arena = False
+        session_options.enable_mem_pattern = False
+        session_options.enable_mem_reuse = False
+
         onnx_model = onnxruntime.InferenceSession(
             str(generator_path), sess_options=session_options, providers=providers
         )
