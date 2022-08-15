@@ -23,23 +23,26 @@ import re
 import subprocess
 import time
 from math import exp, log
+from threading import Thread
 from typing import List
 
+import sdnotify
+import board
+import neopixel
+import RPi.GPIO as GPIO
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, dbus_property, signal
 from dbus_next import BusType
 
-import board
-import neopixel
-import RPi.GPIO as GPIO
-
 _LOGGER = logging.getLogger("mark2-hardware-server")
+NOTIFIER = sdnotify.SystemdNotifier()
+WATCHDOG_DELAY = 0.5
 
 # -----------------------------------------------------------------------------
 
 
 async def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
@@ -75,6 +78,13 @@ async def main():
     #
     await bus.request_name("ai.mycroft.mark2")
 
+    # Start watchdog thread
+    Thread(target=_watchdog, daemon=True).start()
+
+    # Inform systemd that we successfully started
+    NOTIFIER.notify("READY=1")
+    _LOGGER.info("Ready")
+
     try:
         await bus.wait_for_disconnect()
     except KeyboardInterrupt:
@@ -83,6 +93,18 @@ async def main():
         fan_interface.stop()
         led_interface.stop()
         button_interface.stop()
+
+    _LOGGER.info("Stoped")
+
+
+def _watchdog():
+    try:
+        while True:
+            # Prevent systemd from restarting service
+            NOTIFIER.notify("WATCHDOG=1")
+            time.sleep(WATCHDOG_DELAY)
+    except Exception:
+        _LOGGER.exception("Unexpected error in watchdog thread")
 
 
 # -----------------------------------------------------------------------------

@@ -2,8 +2,14 @@
 Description=DBus server for hardware access
 
 [Service]
-Type=simple
-ExecStart=/opt/mycroft/dbus-hal/run.sh
+Type=notify
+ExecStart=/opt/mycroft/dbus-hal/.venv/bin/python3 /opt/mycroft/dbus-hal/dbus_server.py
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+WatchdogSec=30
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target

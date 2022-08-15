@@ -2,3 +2,4 @@ adafruit-blinka
 adafruit-circuitpython-neopixel
 adafruit-circuitpython-pixelbuf
 dbus-next
+sdnotify~=0.3.0
