@@ -1,6 +1,3 @@
 [submodule "mycroft-dinkum"]
 	path = mycroft-dinkum
 	url = https://github.com/mycroftai/mycroft-dinkum.git
-[submodule "mimic3"]
-	path = mimic3
-	url = https://github.com/mycroftai/mimic3.git
