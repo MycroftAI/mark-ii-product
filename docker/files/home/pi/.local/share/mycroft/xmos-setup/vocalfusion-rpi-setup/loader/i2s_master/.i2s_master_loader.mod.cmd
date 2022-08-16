@@ -1,1 +1,0 @@
-cmd_/home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.mod := { echo  /home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.o;  echo; } > /home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.mod

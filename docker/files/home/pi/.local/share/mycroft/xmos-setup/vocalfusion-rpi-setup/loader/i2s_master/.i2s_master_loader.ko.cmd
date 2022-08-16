@@ -1,1 +1,0 @@
-cmd_/home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.ko := ld -r -EL  -maarch64elf --build-id=sha1  -T scripts/module.lds -o /home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.ko /home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.o /home/pi/vocalfusion-rpi-setup/loader/i2s_master/i2s_master_loader.mod.o;  true

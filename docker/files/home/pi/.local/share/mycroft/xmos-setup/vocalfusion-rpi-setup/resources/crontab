@@ -1,2 +1,0 @@
-@reboot sh /home/pi/vocalfusion-rpi-setup/resources/load_i2s_driver.sh
-@reboot sh /home/pi/vocalfusion-rpi-setup/resources/init_dac_and_clks.sh

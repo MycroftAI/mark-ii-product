@@ -1,8 +1,0 @@
-Package: mycroft-core-dinkum
-Version: ${VERSION}
-Section: utils
-Priority: optional
-Depends: eyed3,flac,i2c-tools,libfann-dev,libkf5i18n5,libkf5kiocore5,libkf5plasma5,libkworkspace5-5,libqt5multimedia5,libqt5websockets5,libqt5webview5,libsdl2-mixer-2.0-0,mpc,mpd,plasma-nano,plasma-nm,plasma-pa,python3,python3-pip,python3-venv,python3-websockets,sox,udisks2,vlc,xorg
-Architecture: arm64
-Maintainer: Mycroft AI
-Description: A slimmed-down Mycroft core for the Mark II
