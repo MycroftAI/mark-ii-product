@@ -1,0 +1,2 @@
+pysbd
+mycroft-mimic3-tts
