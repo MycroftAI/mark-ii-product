@@ -305,6 +305,9 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
 
 # TODO: remove lib/modules and lib/firmware
 
+# Automatically log into the mycroft account
+RUN echo 'su -l mycroft' >> /root/.bashrc
+
 # Clean up
 RUN apt-get clean && \
     apt-get autoremove --yes && \
