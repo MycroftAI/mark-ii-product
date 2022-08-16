@@ -31,7 +31,7 @@ import board
 import neopixel
 import RPi.GPIO as GPIO
 from dbus_next.aio import MessageBus
-from dbus_next.service import ServiceInterface, dbus_property, signal
+from dbus_next.service import ServiceInterface, dbus_property, signal, method
 from dbus_next import BusType
 
 _LOGGER = logging.getLogger("mark2-hardware-server")
@@ -460,6 +460,14 @@ class Mark2ButtonInterface(ServiceInterface):
     @signal()
     def mute(self) -> "b":
         return self._states["mute"]
+
+    @method()
+    def report(self):
+        """Report all button states"""
+        self.volume_up()
+        self.volume_down()
+        self.action()
+        self.mute()
 
 
 # -----------------------------------------------------------------------------
