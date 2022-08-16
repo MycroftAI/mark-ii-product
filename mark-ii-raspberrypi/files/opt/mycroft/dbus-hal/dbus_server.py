@@ -464,6 +464,10 @@ class Mark2ButtonInterface(ServiceInterface):
     @method()
     def report(self):
         """Report all button states"""
+        for name, pin in self.PINS.items():
+            value = GPIO.input(pin)
+            self._states[name] = value == self.ACTIVE
+
         self.volume_up()
         self.volume_down()
         self.action()
