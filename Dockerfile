@@ -308,9 +308,7 @@ RUN apt-get clean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/ && \
     rm -rf /lib/firmware/ && \
-    rm -rf /usr/lib/firmware/ && \
     rm -rf /lib/modules/ && \
-    rm -rf /usr/lib/modules/ && \
     rm -f /etc/apt/apt.conf.d/01cache
 
 WORKDIR /home/mycroft
