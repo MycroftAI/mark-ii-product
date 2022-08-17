@@ -300,6 +300,11 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
+# RUN mkdir -p /var/log/mycroft && \
+#     chown -R mycroft:mycroft /var/log/mycroft
+
+# TODO: remove lib/modules and lib/firmware
+
 # Automatically log into the mycroft account
 RUN echo 'su -l mycroft' >> /root/.bashrc
 
@@ -307,8 +312,6 @@ RUN echo 'su -l mycroft' >> /root/.bashrc
 RUN apt-get clean && \
     apt-get autoremove --yes && \
     rm -rf /var/lib/apt/ && \
-    rm -rf /lib/firmware/ && \
-    rm -rf /lib/modules/ && \
     rm -f /etc/apt/apt.conf.d/01cache
 
 WORKDIR /home/mycroft
