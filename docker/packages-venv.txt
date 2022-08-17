@@ -1,7 +1,4 @@
 gcc-aarch64-linux-gnu
 g++-aarch64-linux-gnu
 libfann-dev
-python3.9
-python3.9-dev
 python3-pip
-python3.9-venv
