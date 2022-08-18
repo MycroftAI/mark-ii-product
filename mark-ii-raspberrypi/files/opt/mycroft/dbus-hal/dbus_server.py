@@ -514,6 +514,12 @@ class Mark2AmpInterface(ServiceInterface):
     def _set_volume(self):
         try:
             tas_volume = self._calc_log_y(self._volume)
+
+            # Double-check volume
+            tas_volume = max(
+                self.MIN_HARDWARE_VOLUME, min(self.MAX_HARDWARE_VOLUME, tas_volume)
+            )
+
             set_command = [
                 "i2cset",
                 "-y",  # disable interactive mode

@@ -142,6 +142,6 @@ class tasTest:
 if __name__ == "__main__":
     tt = tasTest()
     tt.startSequence()
-    tt.setVolume(60)
+    tt.setVolume(121)  # 60%
     # os.system("aplay /home/pi/start_listening.wav")
     tt.close()
