@@ -7,5 +7,5 @@ chmod +x /usr/local/bin/pvmeta
 chmod +x /usr/local/bin/pvreboot
 chmod +x /usr/local/bin/pvpoweroff
 
-# systemctl enable pvpoweroff
-# systemctl enable pvreboot
+systemctl enable pvpoweroff
+systemctl enable pvreboot
