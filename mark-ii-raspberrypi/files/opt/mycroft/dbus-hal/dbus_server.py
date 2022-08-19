@@ -42,7 +42,7 @@ WATCHDOG_DELAY = 0.5
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
@@ -503,9 +503,6 @@ class Mark2AmpInterface(ServiceInterface):
     def volume(self, val: "y"):
         """Get volume in [0, 100]"""
         val = min(self.MAX_VOLUME, max(self.MIN_VOLUME, val))
-        if self._volume == val:
-            return
-
         _LOGGER.debug("volume: %s", val)
         self._volume = val
         self._set_volume()
@@ -516,8 +513,9 @@ class Mark2AmpInterface(ServiceInterface):
             tas_volume = self._calc_log_y(self._volume)
 
             # Double-check volume
+            # NOTE: max hardware volume < min hardware volume
             tas_volume = max(
-                self.MIN_HARDWARE_VOLUME, min(self.MAX_HARDWARE_VOLUME, tas_volume)
+                self.MAX_HARDWARE_VOLUME, min(self.MIN_HARDWARE_VOLUME, tas_volume)
             )
 
             set_command = [
