@@ -528,7 +528,7 @@ class Mimic3TextToSpeechSystem(TextToSpeechSystem):
 
         _LOGGER.debug("phonemes=%s, ids=%s", sent_phonemes, sent_phoneme_ids)
 
-        audio = voice.ids_to_audio(
+        audio_bytes = voice.ids_to_audio(
             sent_phoneme_ids,
             speaker=settings.speaker,
             length_scale=settings.length_scale,
@@ -536,8 +536,6 @@ class Mimic3TextToSpeechSystem(TextToSpeechSystem):
             noise_w=settings.noise_w,
             rate=settings.rate,
         )
-
-        audio_bytes = audio.tobytes()
 
         if settings.volume != DEFAULT_VOLUME:
             audio_bytes = audioop.mul(audio_bytes, 2, settings.volume / 100.0)

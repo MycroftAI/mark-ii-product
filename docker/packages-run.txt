@@ -6,7 +6,9 @@ i2c-tools
 kbd
 kmod
 libatomic1
+libespeak-ng1
 libfann-dev
+libjsoncpp1
 libkf5i18n5
 libkf5kiocore5
 libkf5plasma5
@@ -15,6 +17,8 @@ libqt5multimedia5
 libqt5websockets5
 libqt5webview5
 libsdl2-mixer-2.0-0
+libsndfile1
+libspdlog1
 mpc
 mpd
 plasma-nano

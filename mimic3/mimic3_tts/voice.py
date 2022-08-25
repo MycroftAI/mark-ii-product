@@ -14,9 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import csv
+import json
 import logging
 import platform
+import subprocess
 import threading
+import tempfile
 import time
 import typing
 from abc import ABCMeta, abstractmethod
@@ -74,13 +77,13 @@ class Mimic3Voice(metaclass=ABCMeta):
     def __init__(
         self,
         config: TrainingConfig,
-        onnx_model: onnxruntime.InferenceSession,
+        model_proc: subprocess.Popen,
         phoneme_to_id: typing.Dict[PHONEME_TYPE, int],
         phoneme_map: typing.Optional[PHONEME_MAP_TYPE] = None,
         speaker_map: typing.Optional[SPEAKER_MAP_TYPE] = None,
     ):
         self.config = config
-        self.onnx_model = onnx_model
+        self.model_proc = model_proc
         self.phoneme_to_id = phoneme_to_id
         self.phoneme_map = phoneme_map
         self.speaker_map = speaker_map
@@ -161,7 +164,7 @@ class Mimic3Voice(metaclass=ABCMeta):
         noise_scale: typing.Optional[float] = None,
         noise_w: typing.Optional[float] = None,
         rate: float = DEFAULT_RATE,
-    ) -> np.ndarray:
+    ) -> bytes:
         """Synthesize audio from phoneme ids usng Onnx voice model (see generator.onnx)"""
         if length_scale is None:
             length_scale = self.config.inference.length_scale
@@ -177,22 +180,22 @@ class Mimic3Voice(metaclass=ABCMeta):
             noise_w = self.config.inference.noise_w
 
         # Create model inputs
-        text_array = np.expand_dims(np.array(phoneme_ids, dtype=np.int64), 0)
-        text_lengths_array = np.array([text_array.shape[1]], dtype=np.int64)
-        scales_array = np.array(
-            [
-                noise_scale,
-                length_scale,
-                noise_w,
-            ],
-            dtype=np.float32,
-        )
+        # text_array = np.expand_dims(np.array(phoneme_ids, dtype=np.int64), 0)
+        # text_lengths_array = np.array([text_array.shape[1]], dtype=np.int64)
+        # scales_array = np.array(
+        #     [
+        #         noise_scale,
+        #         length_scale,
+        #         noise_w,
+        #     ],
+        #     dtype=np.float32,
+        # )
 
-        inputs = {
-            "input": text_array,
-            "input_lengths": text_lengths_array,
-            "scales": scales_array,
-        }
+        # inputs = {
+        #     "input": text_array,
+        #     "input_lengths": text_lengths_array,
+        #     "scales": scales_array,
+        # }
 
         speaker_id = 0
         if self.config.is_multispeaker:
@@ -214,8 +217,8 @@ class Mimic3Voice(metaclass=ABCMeta):
             elif speaker is not None:
                 speaker_id = speaker
 
-            speaker_id_array = np.array([speaker_id], dtype=np.int64)
-            inputs["sid"] = speaker_id_array
+            # speaker_id_array = np.array([speaker_id], dtype=np.int64)
+            # inputs["sid"] = speaker_id_array
 
         _LOGGER.debug(
             "TTS settings: speaker-id=%s, length-scale=%s, noise-scale=%s, noise-w=%s",
@@ -227,12 +230,27 @@ class Mimic3Voice(metaclass=ABCMeta):
 
         # Infer audio from phonemes
         start_time = time.perf_counter()
-        audio = self.onnx_model.run(None, inputs)[0].squeeze()
-        audio = audio_float_to_int16(audio)
+        with tempfile.NamedTemporaryFile(mode="wb+", suffix="*.wav") as output_file:
+            json.dump(
+                {
+                    "phoneme_ids": phoneme_ids,
+                    "speaker_id": speaker_id,
+                    "output_path": output_file.name,
+                    "mimic3": {
+                        "noise_scale": noise_scale,
+                        "length_scale": length_scale,
+                        "noise_w": noise_w,
+                    },
+                },
+                self.model_proc.stdin,
+            )
+            print("", file=self.model_proc.stdin, flush=True)
+            self.model_proc.stdout.readline()
+            audio_bytes = Path(output_file.name).read_bytes()
         end_time = time.perf_counter()
 
         # Compute real-time factor
-        audio_duration_sec = audio.shape[-1] / self.config.audio.sample_rate
+        audio_duration_sec = len(audio_bytes) / self.config.audio.sample_rate
         infer_sec = end_time - start_time
         real_time_factor = (
             infer_sec / audio_duration_sec if audio_duration_sec > 0 else 0.0
@@ -240,7 +258,7 @@ class Mimic3Voice(metaclass=ABCMeta):
 
         _LOGGER.debug("RTF: %s", real_time_factor)
 
-        return audio
+        return audio_bytes
 
     @staticmethod
     def load_from_directory(
@@ -272,31 +290,38 @@ class Mimic3Voice(metaclass=ABCMeta):
 
         generator_path = voice_dir / "generator.onnx"
 
-        onnx_model: typing.Optional[onnxruntime.InferenceSession] = None
+        # HACK: Hard-coded path
+        model_proc = subprocess.Popen(
+            ["/opt/mycroft/bin/mimic3", str(generator_path.absolute())],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        # onnx_model: typing.Optional[onnxruntime.InferenceSession] = None
 
-        if share_models:
-            with Mimic3Voice._SHARED_MODELS_LOCK:
-                model_key = str(generator_path.absolute())
-                onnx_model = Mimic3Voice._SHARED_MODELS.get(model_key)
+        # if share_models:
+        #     with Mimic3Voice._SHARED_MODELS_LOCK:
+        #         model_key = str(generator_path.absolute())
+        #         onnx_model = Mimic3Voice._SHARED_MODELS.get(model_key)
 
-                if onnx_model is None:
-                    onnx_model = Mimic3Voice._load_model(
-                        generator_path,
-                        session_options=session_options,
-                        providers=providers,
-                        use_deterministic_compute=use_deterministic_compute,
-                    )
+        #         if onnx_model is None:
+        #             onnx_model = Mimic3Voice._load_model(
+        #                 generator_path,
+        #                 session_options=session_options,
+        #                 providers=providers,
+        #                 use_deterministic_compute=use_deterministic_compute,
+        #             )
 
-                    Mimic3Voice._SHARED_MODELS[model_key] = onnx_model
-                else:
-                    _LOGGER.debug("Using shared Onnx model (%s)", model_key)
-        else:
-            onnx_model = Mimic3Voice._load_model(
-                generator_path,
-                session_options=session_options,
-                providers=providers,
-                use_deterministic_compute=use_deterministic_compute,
-            )
+        #             Mimic3Voice._SHARED_MODELS[model_key] = onnx_model
+        #         else:
+        #             _LOGGER.debug("Using shared Onnx model (%s)", model_key)
+        # else:
+        #     onnx_model = Mimic3Voice._load_model(
+        #         generator_path,
+        #         session_options=session_options,
+        #         providers=providers,
+        #         use_deterministic_compute=use_deterministic_compute,
+        #     )
 
         # phoneme -> phoneme, phoneme, ...
         phoneme_map: typing.Optional[PHONEME_MAP_TYPE] = None
@@ -324,7 +349,7 @@ class Mimic3Voice(metaclass=ABCMeta):
             # Phonemes from gruut: https://github.com/rhasspy/gruut/
             return GruutVoice(
                 config=config,
-                onnx_model=onnx_model,
+                model_proc=model_proc,
                 phoneme_to_id=phoneme_to_id,
                 phoneme_map=phoneme_map,
                 speaker_map=speaker_map,
@@ -347,7 +372,7 @@ class Mimic3Voice(metaclass=ABCMeta):
 
             return voice_class(
                 config=config,
-                onnx_model=onnx_model,
+                model_proc=model_proc,
                 phoneme_to_id=phoneme_to_id,
                 phoneme_map=phoneme_map,
                 speaker_map=speaker_map,
@@ -357,7 +382,7 @@ class Mimic3Voice(metaclass=ABCMeta):
             # Phonemes are characters from an alphabet
             return SymbolsVoice(
                 config=config,
-                onnx_model=onnx_model,
+                model_proc=model_proc,
                 phoneme_to_id=phoneme_to_id,
                 phoneme_map=phoneme_map,
                 speaker_map=speaker_map,
@@ -367,7 +392,7 @@ class Mimic3Voice(metaclass=ABCMeta):
             # Phonemes are from epitran: https://github.com/dmort27/epitran/
             return EpitranVoice(
                 config=config,
-                onnx_model=onnx_model,
+                model_proc=model_proc,
                 phoneme_to_id=phoneme_to_id,
                 phoneme_map=phoneme_map,
                 speaker_map=speaker_map,
@@ -375,41 +400,44 @@ class Mimic3Voice(metaclass=ABCMeta):
 
         raise ValueError(f"Unsupported phonemizer: {config.phonemizer}")
 
-    @staticmethod
-    def _load_model(
-        generator_path: Path,
-        session_options: typing.Optional[onnxruntime.SessionOptions] = None,
-        providers: typing.Optional[
-            typing.Sequence[
-                typing.Union[str, typing.Tuple[str, typing.Dict[str, typing.Any]]]
-            ]
-        ] = None,
-        use_deterministic_compute: bool = False,
-    ) -> onnxruntime.InferenceSession:
-        _LOGGER.debug("Loading model from %s", generator_path)
+    # @staticmethod
+    # def _load_model(
+    #     generator_path: Path,
+    #     session_options: typing.Optional[onnxruntime.SessionOptions] = None,
+    #     providers: typing.Optional[
+    #         typing.Sequence[
+    #             typing.Union[str, typing.Tuple[str, typing.Dict[str, typing.Any]]]
+    #         ]
+    #     ] = None,
+    #     use_deterministic_compute: bool = False,
+    # ) -> onnxruntime.InferenceSession:
+    #     _LOGGER.debug("Loading model from %s", generator_path)
 
-        # Load onnx model
-        if session_options is None:
-            session_options = onnxruntime.SessionOptions()
+    #     # Load onnx model
+    #     if session_options is None:
+    #         session_options = onnxruntime.SessionOptions()
 
-            if platform.machine() == "armv7l":
-                # Enabling optimizations on 32-bit ARM crashes
-                session_options.graph_optimization_level = (
-                    onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
-                )
+    #         if platform.machine() == "armv7l":
+    #             # Enabling optimizations on 32-bit ARM crashes
+    #             session_options.graph_optimization_level = (
+    #                 onnxruntime.GraphOptimizationLevel.ORT_DISABLE_ALL
+    #             )
 
-        session_options.use_deterministic_compute = use_deterministic_compute
+    #     session_options.use_deterministic_compute = use_deterministic_compute
 
-        # Keep memory usage lower
-        session_options.enable_cpu_mem_arena = False
-        session_options.enable_mem_pattern = False
-        session_options.enable_mem_reuse = False
+    #     # Keep memory usage lower
+    #     session_options.enable_cpu_mem_arena = False
+    #     session_options.enable_mem_pattern = False
+    #     session_options.enable_mem_reuse = False
+    #     session_options.enable_profiling = False
+    #     session_options.inter_op_num_threads = 1
+    #     session_options.intra_op_num_threads = 1
 
-        onnx_model = onnxruntime.InferenceSession(
-            str(generator_path), sess_options=session_options, providers=providers
-        )
+    #     onnx_model = onnxruntime.InferenceSession(
+    #         str(generator_path), sess_options=session_options, providers=providers
+    #     )
 
-        return onnx_model
+    #     return onnx_model
 
 
 # -----------------------------------------------------------------------------

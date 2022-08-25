@@ -102,6 +102,17 @@ RUN --mount=type=cache,id=pip-build-hal,target=/root/.cache/pip \
 
 # -----------------------------------------------------------------------------
 
+# Image where Mimic C++ executable is built
+FROM base-build as build-mimic3
+
+WORKDIR /opt/mycroft/mimic3-cpp
+
+COPY mimic3-cpp/ ./
+COPY docker/files/usr/local/include/onnxruntime/ /usr/local/include/onnxruntime/
+RUN make release
+
+# -----------------------------------------------------------------------------
+
 FROM base-build as build-dinkum
 
 # Create dinkum (shared) virtual environment
@@ -256,6 +267,9 @@ COPY --from=build-gui /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux
 
 # Copy HAL tools
 COPY --from=build-hal --chown=mycroft:mycroft /opt/mycroft/ /opt/mycroft/
+
+# Copy Mimic3 C++ executable
+COPY --from=build-mimic3 --chown=mycroft:mycroft /opt/mycroft/mimic3-cpp/build/mimic3/mimic3 /opt/mycroft/bin/
 
 # Copy dinkum code and virtual environment
 COPY --from=build-dinkum --chown=mycroft:mycroft /opt/mycroft-dinkum/ /opt/mycroft-dinkum/
