@@ -250,7 +250,6 @@ RUN ./install-fonts.sh
 
 # Enable/disable services at boot.
 RUN systemctl disable NetworkManager && \
-    systemctl disable udisks2 && \
     systemctl disable networking && \
     systemctl disable apt-daily-upgrade && \
     systemctl disable snapd.service && \
@@ -307,6 +306,7 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-hal.service && \
     systemctl enable /etc/systemd/system/mycroft-boot.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
+    systemctl enable /etc/systemd/system/mycroft-automount.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
