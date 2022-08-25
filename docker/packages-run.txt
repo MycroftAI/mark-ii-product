@@ -3,6 +3,7 @@ eyed3
 flac
 git
 i2c-tools
+jq
 kbd
 kmod
 libatomic1

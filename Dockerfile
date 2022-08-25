@@ -57,10 +57,6 @@ RUN --mount=type=cache,id=apt-base-build,target=/var/cache/apt \
 # Image where Mycroft GUI is built
 FROM base-build as build-gui
 
-# Generate container build timestamp
-# COPY docker/build/mycroft/store-build-date.sh ./
-# RUN ./store-build-date.sh
-
 COPY mycroft-dinkum/services/gui/mycroft-gui/ ./mycroft-gui/
 COPY docker/build/gui/build-mycroft-gui.sh ./
 RUN ./build-mycroft-gui.sh
@@ -321,6 +317,10 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
 
 # Automatically log into the mycroft account
 RUN echo 'su -l mycroft' >> /root/.bashrc
+
+# Generate container build timestamp
+COPY docker/build/mycroft/store-build-date.sh /opt/mycroft/bin/
+RUN /opt/mycroft/bin/store-build-date.sh
 
 # Clean up
 RUN apt-get clean && \
