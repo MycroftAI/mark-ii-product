@@ -141,7 +141,7 @@ COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
 COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
 # COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
 # COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
-# COPY mycroft-dinkum/skills/play-radio.mark2/requirements.txt ./skills/play-radio.mark2/
+COPY mycroft-dinkum/skills/play-radio.mark2/requirements.txt ./skills/play-radio.mark2/
 COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
 COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
 COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
