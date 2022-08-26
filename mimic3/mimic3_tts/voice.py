@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import csv
+import io
 import json
 import logging
 import platform
@@ -22,6 +23,7 @@ import threading
 import tempfile
 import time
 import typing
+import wave
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -246,7 +248,11 @@ class Mimic3Voice(metaclass=ABCMeta):
             )
             print("", file=self.model_proc.stdin, flush=True)
             self.model_proc.stdout.readline()
-            audio_bytes = Path(output_file.name).read_bytes()
+            wav_bytes = Path(output_file.name).read_bytes()
+            with io.BytesIO(wav_bytes) as wav_io:
+                with wave.open(wav_io, "rb") as wav_file:
+                    audio_bytes = wav_file.readframes(wav_file.getnframes())
+
         end_time = time.perf_counter()
 
         # Compute real-time factor
