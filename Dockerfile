@@ -105,6 +105,7 @@ WORKDIR /opt/mycroft/mimic3-cpp
 
 COPY mimic3-cpp/ ./
 COPY docker/files/usr/local/include/onnxruntime/ /usr/local/include/onnxruntime/
+RUN ln -s /usr/local/include/onnxruntime/lib/libonnxruntime.so.1.12.1 /usr/lib/libonnxruntime.so
 RUN make release
 
 # -----------------------------------------------------------------------------
