@@ -1,4 +1,5 @@
 bash-completion
+htop
 less
 nano
 openssh-client
