@@ -32,8 +32,9 @@ namespace mimic3 {
         Ort::Env env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, instanceName.c_str());
         env.DisableTelemetryEvents();
 
-        session.options.SetIntraOpNumThreads(1);
-        session.options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        // session.options.SetIntraOpNumThreads(1);
+        // session.options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        session.options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_DISABLE_ALL);
         session.options.DisableCpuMemArena();
         session.options.DisableMemPattern();
         session.options.DisableProfiling();
