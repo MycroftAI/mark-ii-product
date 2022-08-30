@@ -244,11 +244,6 @@ RUN apt-get update && \
 COPY docker/build/mycroft/create-mycroft-user.sh ./
 RUN ./create-mycroft-user.sh
 
-# Install the Noto Sans font family
-ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
-COPY docker/build/mycroft/install-fonts.sh ./
-RUN ./install-fonts.sh
-
 # Enable/disable services at boot.
 RUN systemctl disable NetworkManager && \
     systemctl disable networking && \
@@ -283,6 +278,12 @@ COPY mark-ii-raspberrypi/files/etc/ /etc/
 COPY mark-ii-raspberrypi/files/opt/ /opt/
 COPY mark-ii-raspberrypi/files/usr/ /usr/
 COPY mark-ii-raspberrypi/pre-built/ /
+
+# Install the Noto Sans font family using config from /etc
+ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
+ADD docker/build/mycroft/Noto_Sans_*.zip /usr/share/fonts/truetype/noto-sans/
+COPY docker/build/mycroft/install-fonts.sh ./
+RUN ./install-fonts.sh
 
 # Copy user files
 COPY --chown=mycroft:mycroft mark-ii-raspberrypi/files/home/pi/ /home/mycroft/
