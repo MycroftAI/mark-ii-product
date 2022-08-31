@@ -16,6 +16,9 @@ fi
 # NOTE: Not loading on Pantacor device
 # sh "${this_dir}/vocalfusion/vocalfusion-rpi-setup-5.2.0/resources/load_i2s_driver.sh" || true
 
+# Force ALSA to configure
+arecord -d 1 > /dev/null 2>&1
+
 # Set clocks
 sudo setup_mclk
 sudo setup_bclk
