@@ -6,6 +6,7 @@ i2c-tools
 jq
 kbd
 kmod
+libasound2
 libatomic1
 libespeak-ng1
 libfann-dev

@@ -2,6 +2,7 @@ build-essential
 cmake
 extra-cmake-modules
 gettext
+libasound2-dev
 libespeak-ng-dev
 libfann-dev
 libjsoncpp-dev
