@@ -255,6 +255,7 @@ RUN systemctl disable NetworkManager && \
 # Copy pre-built GUI files
 COPY --from=build-gui /usr/local/ /usr/
 COPY --from=build-gui /usr/lib/aarch64-linux-gnu/qt5/qml/ /usr/lib/aarch64-linux-gnu/qt5/qml/
+COPY --from=build-gui /opt/vc/ /opt/vc/
 
 # Copy HAL tools
 COPY --from=build-hal --chown=mycroft:mycroft /opt/mycroft/ /opt/mycroft/
@@ -300,7 +301,6 @@ COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbo
 COPY --chown=0:0 --from=registry.gitlab.com/pantacor/pantavisor-runtime/pvtoolbox:arm32v7-master /usr/local/bin/pvpoweroff /usr/local/bin/pvpoweroff
 
 COPY docker/build/pantacor/install-pantacor-tools.sh ./
-# TODO enable poweroff and reboot units
 RUN ./install-pantacor-tools.sh && rm install-pantacor-tools.sh
 
 COPY --from=build-dinkum /etc/systemd/system/dinkum* /etc/systemd/system/
@@ -312,13 +312,8 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
     systemctl set-default graphical
 
-# RUN mkdir -p /var/log/mycroft && \
-#     chown -R mycroft:mycroft /var/log/mycroft
-
-# TODO: remove lib/modules and lib/firmware
-
 # Automatically log into the mycroft account
-RUN echo 'su -l mycroft' >> /root/.bashrc
+RUN { echo 'source /opt/mycroft/.camerarc'; echo 'su -l mycroft'; } >> /root/.bashrc
 
 # Generate container build timestamp
 COPY docker/build/mycroft/store-build-date.sh /opt/mycroft/bin/
