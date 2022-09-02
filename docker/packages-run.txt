@@ -1,4 +1,3 @@
-alsa
 alsa-utils
 eyed3
 flac
@@ -25,6 +24,7 @@ mpc
 mpd
 plasma-nano
 plasma-nm
+plasma-pa
 plymouth
 plymouth-themes
 python3-pip
