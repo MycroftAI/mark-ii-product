@@ -42,7 +42,7 @@ WATCHDOG_DELAY = 0.5
 
 
 async def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
