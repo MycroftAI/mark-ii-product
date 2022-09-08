@@ -32,7 +32,7 @@ gpio -g write 27 1
 sleep 1
 
 # Upload XMOS firmware directly
-"${venv_dir}/bin/python3" "${this_dir}/send_image_from_rpi.py" --direct "${this_dir}/app_xvf3510_int_spi_boot_v4_1_0.bin"
+"${venv_dir}/bin/python3" "${this_dir}/send_image_from_rpi.py" --direct "${this_dir}/app_xvf3510_int_spi_boot_v4_2_0.bin"
 
 # Set up Ti Amp (speakers)
 "${venv_dir}/bin/python3" "${this_dir}/tas5806Test.py"
