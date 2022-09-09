@@ -10,6 +10,10 @@ blkid | cut -d':' -f1 | \
     do udisksctl mount --block-device "${devname}" --no-user-interaction || true; \
     done
 
+# Restart/update mpd
+systemctl restart mpd || true
+mpc update || true
+
 stdbuf -oL -- udevadm monitor --udev -s block | while read -r -- _ _ event devpath _; do
         if [ "$event" = add ]; then
             devname=$(pathtoname "$devpath")
