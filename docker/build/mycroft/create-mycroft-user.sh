@@ -31,6 +31,7 @@ usermod -a -G plugdev mycroft
 usermod -a -G games mycroft
 usermod -a -G users mycroft
 usermod -a -G adm mycroft
+usermod -a -G dialout mycroft
 
 # Add Mycroft config directory - ensuring it already exists on first boot
 mkdir -p $mycroft_config_dir
