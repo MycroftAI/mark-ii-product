@@ -91,8 +91,13 @@ kernel=u-boot.rpi_arm64_defconfig.bin
 start_x=1
 force_turbo=1
 dtparam=sd_poll_once
-enable_uart=1
 device_tree_address=0x02000000
+
+# Bluetooth
+enable_uart=1
+
+# Camera
 gpu_mem=128
 camera_auto_detect=1
-
+start_file=start4x.elf
+fixup_file=fixup4x.dat
