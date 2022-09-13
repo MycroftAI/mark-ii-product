@@ -16,15 +16,16 @@
 #
 # -----------------------------------------------------------------------------
 #
-# Sends a message to the Mark II message bus.
+# Listen to messages from the Mark II message bus.
 #
 # Example:
-# mark2-send 'recognizer_loop:utterance' '{ "utterances": ["what time is it"] }'
+# mark2-listen 'event.type.1' 'event.type.2' ...
 #
 import argparse
 import asyncio
 import json
 import sys
+import time
 
 from websockets import connect
 
@@ -36,21 +37,31 @@ async def main():
         default="ws://127.0.0.1:8181/core",
         help="URI of websocket messagebus",
     )
-    parser.add_argument("message_type")
-    args, rest = parser.parse_known_args()
-    data = {}
-    if rest:
-        data = json.loads(rest[0])
-
-    message_str = json.dumps(
-        {"type": args.message_type, "data": data},
-        ensure_ascii=False,
+    parser.add_argument(
+        "--reconnect-delay",
+        type=float,
+        default=1.0,
+        help="Seconds between reconnection attempts",
     )
+    args, rest = parser.parse_known_args()
+    message_types = set(rest)
 
-    async with connect(args.uri) as websocket:
-        await websocket.send(message_str)
+    while True:
+        try:
+            async with connect(args.uri) as websocket:
+                while True:
+                    try:
+                        json_str = await websocket.recv()
+                    except KeyboardInterrupt:
+                        return
 
-    print(message_str, file=sys.stderr)
+                    message = json.loads(json_str)
+                    if (not message_types) or (message["type"] in message_types):
+                        print(json_str, flush=True)
+        except Exception:
+            print("Disconnected", file=sys.stderr)
+            time.sleep(args.reconnect_delay)
+            print("Reconnecting...", file=sys.stderr)
 
 
 # -----------------------------------------------------------------------------
