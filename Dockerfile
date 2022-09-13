@@ -135,6 +135,7 @@ COPY mycroft-dinkum/skills/alarm.mark2/requirements.txt ./skills/alarm.mark2/
 COPY mycroft-dinkum/skills/homeassistant.mark2/requirements.txt ./skills/homeassistant.mark2/
 COPY mycroft-dinkum/skills/homescreen.mark2/requirements.txt ./skills/homescreen.mark2/
 COPY mycroft-dinkum/skills/ip.mark2/requirements.txt ./skills/ip.mark2/
+# COPY mycroft-dinkum/skills/microphone.mark2/requirements.txt ./skills/microphone.mark2/
 COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
 # COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
 # COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
@@ -205,6 +206,7 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/homeassistant.mark2 \
         --skill skills/homescreen.mark2 \
         --skill skills/ip.mark2 \
+        --skill skills/microphone.mark2 \
         --skill skills/news.mark2 \
         --skill skills/play.mark2 \
         --skill skills/play-music.mark2 \
