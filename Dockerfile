@@ -167,8 +167,12 @@ RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
 # Install plugins
 COPY mycroft-dinkum/plugins/ ./plugins/
 COPY mimic3/ ./mimic3/
+COPY docker/build/mycroft/wheels/ ./wheels/
 RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
+    gunzip --keep ./plugins/stt_coqui/mycroft_coqui/models/english_v1.0.0-large-vocab/large_vocabulary.scorer.gz && \
+    "${DINKUM_VENV}/bin/pip3" install -f ./wheels/ ./plugins/stt_coqui/ && \
+    "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk/ && \
     "${DINKUM_VENV}/bin/pip3" install ./mimic3 && \
     "${DINKUM_VENV}/bin/pip3" install mycroft-plugin-tts-mimic3
 
