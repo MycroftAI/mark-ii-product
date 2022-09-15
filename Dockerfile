@@ -140,6 +140,7 @@ COPY mycroft-dinkum/skills/news.mark2/requirements.txt ./skills/news.mark2/
 # COPY mycroft-dinkum/skills/play.mark2/requirements.txt ./skills/play.mark2/
 # COPY mycroft-dinkum/skills/play-music.mark2/requirements.txt ./skills/play-music.mark2/
 COPY mycroft-dinkum/skills/play-radio.mark2/requirements.txt ./skills/play-radio.mark2/
+# COPY mycroft-dinkum/skills/privacy/requirements.txt ./skills/privacy.mark2/
 COPY mycroft-dinkum/skills/query-duck-duck-go.mark2/requirements.txt ./skills/query-duck-duck-go.mark2/
 COPY mycroft-dinkum/skills/query-wiki.mark2/requirements.txt ./skills/query-wiki.mark2/
 COPY mycroft-dinkum/skills/query-wolfram-alpha.mark2/requirements.txt ./skills/query-wolfram-alpha.mark2/
@@ -215,6 +216,7 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/play.mark2 \
         --skill skills/play-music.mark2 \
         --skill skills/play-radio.mark2 \
+        --skill skills/privacy.mark2 \
         --skill skills/query-duck-duck-go.mark2 \
         --skill skills/query-wiki.mark2 \
         --skill skills/query-wolfram-alpha.mark2 \
