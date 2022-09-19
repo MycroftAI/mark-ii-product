@@ -171,7 +171,6 @@ COPY mimic3/ ./mimic3/
 COPY docker/build/mycroft/wheels/ ./wheels/
 RUN --mount=type=cache,id=pip-build-dinkum,target=/root/.cache/pip \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/hotword_precise/ && \
-    gunzip --keep ./plugins/stt_coqui/mycroft_coqui/models/english_v1.0.0-large-vocab/large_vocabulary.scorer.gz && \
     "${DINKUM_VENV}/bin/pip3" install -f ./wheels/ ./plugins/stt_coqui/ && \
     "${DINKUM_VENV}/bin/pip3" install ./plugins/stt_vosk/ && \
     "${DINKUM_VENV}/bin/pip3" install ./mimic3 && \
@@ -272,11 +271,14 @@ COPY --from=build-hal --chown=mycroft:mycroft /opt/mycroft/ /opt/mycroft/
 COPY --from=build-mimic3 --chown=mycroft:mycroft /opt/mycroft/mimic3-cpp/build/mimic3/mimic3 /opt/mycroft/bin/
 
 # Copy dinkum code and virtual environment
-COPY --from=build-dinkum --chown=mycroft:mycroft /opt/mycroft-dinkum/ /opt/mycroft-dinkum/
+COPY --from=build-dinkum --chown=mycroft:mycroft /opt/mycroft-dinkum/.venv/ /opt/mycroft-dinkum/.venv/
 COPY --chown=mycroft:mycroft mycroft-dinkum/ /opt/mycroft-dinkum/
 RUN rm -f /opt/mycroft-dinkum/.git
 COPY --chown=mycroft:mycroft .git/modules/mycroft-dinkum/ /opt/mycroft-dinkum/.git/
 RUN sed -i 's|worktree\s\+=.*|worktree = ../|' /opt/mycroft-dinkum/.git/config
+
+# Need to unzip model
+RUN gunzip --keep /opt/mycroft-dinkum/plugins/stt_coqui/mycroft_coqui/models/english_v1.0.0-large-vocab/large_vocabulary.scorer.gz
 
 # Copy system files
 COPY docker/files/etc/ /etc/
