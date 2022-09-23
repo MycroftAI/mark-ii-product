@@ -18,6 +18,6 @@
 #
 # Script run on boot
 
-mark2-leds 0
+mark2-leds 34,167,240
 mark2-fan 50
 mark2-volume 60
