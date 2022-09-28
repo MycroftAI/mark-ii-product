@@ -227,6 +227,23 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/weather.mark2
 
 # -----------------------------------------------------------------------------
+
+FROM base-build as build-fonts
+
+RUN --mount=type=cache,id=apt-fonts,target=/var/cache/apt \
+    apt-get update && \
+    apt-get --yes --no-install-recommends install unzip
+
+# Extract fonts here. Copied into main container later.
+WORKDIR /fonts
+
+COPY docker/build/mycroft/Noto_Sans_*.zip ./extract/
+RUN cd extract/ && find . -name '*.zip' -print0 | xargs -0 -n1 unzip -o
+RUN mkdir -p ./noto-sans && \
+    find ./extract \( -name '*.ttf' -or -name '*.otf' \) -print0 | \
+    xargs -0 -I{} mv {} ./noto-sans/
+
+# -----------------------------------------------------------------------------
 # Run
 # -----------------------------------------------------------------------------
 
@@ -292,7 +309,7 @@ COPY mark-ii-raspberrypi/pre-built/ /
 
 # Install the Noto Sans font family using config from /etc
 ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
-ADD docker/build/mycroft/Noto_Sans_*.zip /usr/share/fonts/truetype/noto-sans/
+COPY --from=build-fonts /fonts/noto-sans/ /usr/share/fonts/truetype/noto-sans/
 COPY docker/build/mycroft/install-fonts.sh ./
 RUN ./install-fonts.sh
 
