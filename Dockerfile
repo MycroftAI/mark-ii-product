@@ -295,7 +295,7 @@ COPY --chown=mycroft:mycroft .git/modules/mycroft-dinkum/ /opt/mycroft-dinkum/.g
 RUN sed -i 's|worktree\s\+=.*|worktree = ../|' /opt/mycroft-dinkum/.git/config
 
 # Need to unzip model
-RUN gunzip --keep /opt/mycroft-dinkum/plugins/stt_coqui/mycroft_coqui/models/english_v1.0.0-large-vocab/large_vocabulary.scorer.gz
+RUN gunzip --keep /opt/mycroft-dinkum/.venv/lib/python3.8/site-packages/mycroft_coqui/models/english_v1.0.0-large-vocab/large_vocabulary.scorer.gz
 
 # Copy system files
 COPY docker/files/etc/ /etc/
