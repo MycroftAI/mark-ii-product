@@ -130,10 +130,10 @@ class Mark2FanInterface(ServiceInterface):
         self._is_i2c_fan = self._detect_i2c_fan()
 
         if self._is_i2c_fan:
-            _LOGGER.debug("I2C fan detected")
+            _LOGGER.info("I2C fan detected")
             self._pwm = None
         else:
-            _LOGGER.debug("GPIO fan detected")
+            _LOGGER.info("GPIO fan detected")
             GPIO.setup(self.FAN_PIN, GPIO.OUT)
 
             self._pwm = GPIO.PWM(self.FAN_PIN, 1000)
@@ -246,10 +246,10 @@ class Mark2LedInterface(ServiceInterface):
         self._brightness: float = 0.5
 
         if self._is_i2c_leds:
-            _LOGGER.debug("I2C LEDs detected")
+            _LOGGER.info("I2C LEDs detected")
             self._pixels = None
         else:
-            _LOGGER.debug("GPIO LEDs detected")
+            _LOGGER.info("GPIO LEDs detected")
 
             # Use Adafruit library (requires root)
             self._pixels = neopixel.NeoPixel(
