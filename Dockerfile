@@ -307,6 +307,12 @@ COPY mark-ii-raspberrypi/files/opt/ /opt/
 COPY mark-ii-raspberrypi/files/usr/ /usr/
 COPY mark-ii-raspberrypi/pre-built/ /
 
+# Replace splash animation theme
+ADD docker/build/plymouth/spinner_theme.tar.gz /usr/share/plymouth/themes/spinner/
+# The following is my best guess as to what will work. It works fine on my
+# current unit, but I am not sure if it will work here as-is.
+RUN sudo ln -sfn /usr/share/plymouth/themes/spinner/spinner.plymouth /usr/share/plymouth/themes/default.plymouth
+
 # Install the Noto Sans font family using config from /etc
 ADD docker/build/mycroft/Font_NotoSans-hinted.tar.gz /usr/share/fonts/truetype/noto-sans/
 COPY --from=build-fonts /fonts/noto-sans/ /usr/share/fonts/truetype/noto-sans/
