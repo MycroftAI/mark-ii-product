@@ -227,7 +227,10 @@ RUN scripts/generate-systemd-units.py \
         --skill skills/weather.mark2
 
 # -----------------------------------------------------------------------------
+#  Fonts
+# -----------------------------------------------------------------------------
 
+# Extract international Noto-Sans fonts
 FROM base-build as build-fonts
 
 RUN --mount=type=cache,id=apt-fonts,target=/var/cache/apt \
@@ -242,6 +245,39 @@ RUN cd extract/ && find . -name '*.zip' -print0 | xargs -0 -n1 unzip -o
 RUN mkdir -p ./noto-sans && \
     find ./extract \( -name '*.ttf' -or -name '*.otf' \) -print0 | \
     xargs -0 -I{} mv {} ./noto-sans/
+
+
+# -----------------------------------------------------------------------------
+#  Bluetooth
+# -----------------------------------------------------------------------------
+
+# Build bluez-alsa from source (https://github.com/Arkq/bluez-alsa)
+# This will be unnecessary when using an up-to-date distribution.
+FROM base-build as build-bluez-alsa
+
+RUN --mount=type=cache,id=apt-fonts,target=/var/cache/apt \
+    apt-get update && \
+    apt-get --yes --no-install-recommends install \
+    automake autoconf build-essential libtool pkgconf \
+    git \
+    libasound2-dev \
+    libbluetooth-dev \
+    libdbus-1-dev \
+    libfdk-aac-dev \
+    libmp3lame-dev \
+    libglib2.0-dev \
+    libsbc-dev
+
+WORKDIR /build
+RUN git clone https://github.com/Arkq/bluez-alsa
+
+RUN cd bluez-alsa && \
+    git checkout 'v4.0.0' && \
+    autoreconf --install && \
+    ./configure --enable-aac --enable-mp3lame && \
+    make && \
+    make install
+
 
 # -----------------------------------------------------------------------------
 # Run
@@ -286,6 +322,11 @@ COPY --from=build-hal --chown=mycroft:mycroft /opt/mycroft/ /opt/mycroft/
 
 # Copy Mimic3 C++ executable
 COPY --from=build-mimic3 --chown=mycroft:mycroft /opt/mycroft/mimic3-cpp/build/mimic3/mimic3 /opt/mycroft/bin/
+
+# Copy bluez-alsa stuff
+COPY --from=build-bluez-alsa /etc/alsa/conf.d/20-bluealsa.conf /etc/alsa/conf.d/
+COPY --from=build-bluez-alsa /etc/dbus-1/system.d/bluealsa.conf /etc/dbus-1/system.d/
+COPY --from=build-bluez-alsa /usr/bin/bluealsa /usr/bin/bluealsa-aplay /usr/bin/
 
 # Copy dinkum code and virtual environment
 COPY --from=build-dinkum --chown=mycroft:mycroft /opt/mycroft-dinkum/.venv/ /opt/mycroft-dinkum/.venv/
@@ -337,6 +378,9 @@ RUN systemctl enable /etc/systemd/system/mycroft-xmos.service && \
     systemctl enable /etc/systemd/system/mycroft-plasma.service && \
     systemctl enable /etc/systemd/system/mycroft-automount.service && \
     systemctl enable /etc/systemd/system/dinkum.target && \
+    systemctl enable bluetooth-firmware.service && \
+    systemctl enable bluetooth.service && \
+    systemctl enable bluez-alsa.service && \
     systemctl set-default graphical
 
 # Automatically log into the mycroft account

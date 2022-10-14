@@ -1,0 +1,15 @@
+[Unit]
+Description=Bluealsa daemon
+Documentation=https://github.com/Arkq/bluez-alsa/
+After=dbus-org.bluez.service
+Requires=dbus-org.bluez.service
+
+[Service]
+Type=dbus
+BusName=org.bluealsa
+EnvironmentFile=-/etc/default/bluez-alsa
+ExecStart=/usr/bin/bluealsa $OPTIONS
+Restart=on-failure
+
+[Install]
+WantedBy=bluetooth.target
