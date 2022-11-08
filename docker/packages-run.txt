@@ -1,3 +1,5 @@
+python3-venv
+python3-yaml
 alsa
 alsa-utils
 eyed3
@@ -24,12 +26,9 @@ libsndfile1
 libspdlog1
 mpc
 mpd
-plasma-nano
-plasma-nm
 plymouth
 plymouth-themes
 python3-pip
-python3-rpi.gpio
 python3-websockets
 sox
 sudo
