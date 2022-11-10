@@ -21,7 +21,7 @@ SHELL := bash
 
 #DOCKER_PLATFORM ?= linux/arm64
 DOCKER_PLATFORM ?= linux/amd64
-DOCKER_TAG ?= mycroftai/mark-ii-product
+DOCKER_TAG ?= mycroftai/mark-ii-vktest
 
 all:
 	docker buildx build . -f Dockerfile --platform $(DOCKER_PLATFORM) --tag $(DOCKER_TAG) --load
