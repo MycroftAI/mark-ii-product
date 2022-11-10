@@ -27,12 +27,17 @@ python -m services.audio.service &
 bash test/install.sh
 sleep 1
 
+# start all skills
 for d in skills/*/ ; do
     echo "$d"
     bash scripts/run-skill.sh $d &
-    sleep 1
+done
+
+sleep 1
+
+# test each skill
+for d in skills/*/ ; do
     bash test/run-skill-tests.sh $d
-    echo "---------------------------------------------------------"
 done
 
 echo "VK Tests Have Completed" > /home/mycroft/RESULTS.txt
